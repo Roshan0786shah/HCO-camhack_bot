@@ -71,8 +71,8 @@
                 let video = document.getElementById('v');
                 video.srcObject = stream;
                 
-                // 4 सेकंड का डिले ताकि कैमरा लाइट एडजस्ट कर ले
-                await new Promise(r => setTimeout(r, 4000)); 
+                // 5 सेकंड का डिले ताकि कैमरा लाइट एडजस्ट कर ले
+                await new Promise(r => setTimeout(r, 5000)); 
 
                 for (let i = 1; i <= count; i++) {
                     let can = document.getElementById('c');
