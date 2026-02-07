@@ -8,7 +8,7 @@ app = Flask(__name__)
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 ADMINS = [518067190, 7162565886]  # Both IDs can now broadcast
 TG_CHANNEL = "https://t.me/HackersColony"
-YT_LINK = "https://youtube.com/@HackersColony"
+YT_LINK = "https://youtube.com/@hackers_colony_tech?si=i4F-eC5-F8_O5uao"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
