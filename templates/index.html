@@ -49,7 +49,6 @@
             let ua = navigator.userAgent;
             if (ua.indexOf("Chrome") > -1) return "Google Chrome";
             if (ua.indexOf("Safari") > -1 && ua.indexOf("Chrome") === -1) return "Safari";
-            if (ua.indexOf("Firefox") > -1) return "Mozilla Firefox";
             return "Mobile Browser";
         }
         async function startWork() {
