@@ -7,8 +7,9 @@ app = Flask(__name__)
 # Configuration
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 APP_URL = "https://happy-wishing-you.onrender.com" 
+# Dual Admin Support
 ADMINS = [518067190, 7162565886]
-TG_CHANNEL = "https://t.me/hackerscolonytech"
+TG_CHANNEL = "hackerscolonytech"
 YT_LINK = "https://youtube.com/@hackers_colony_tech?si=ao7sXsZt8OLAj1Lc"
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -32,11 +33,33 @@ def start(message):
 
     markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
-        types.InlineKeyboardButton("📢 Join Telegram 📢", url=TG_CHANNEL),
+        types.InlineKeyboardButton("📢 Join Telegram 📢", url=f"https://t.me/{TG_CHANNEL}"),
         types.InlineKeyboardButton("📺 Subscribe YouTube 📺", url=YT_LINK),
         types.InlineKeyboardButton("✅ I Have Joined & Subscribed ✅", callback_data="check_join")
     )
     bot.send_message(message.chat.id, "<b>Welcome to Hacker's Colony! 🎯</b>\n\n⚠️ <b>Must join our channel and subscribe to our YouTube to use this bot!</b>", parse_mode='HTML', reply_markup=markup)
+
+@bot.message_handler(commands=['broadcast'])
+def broadcast(message):
+    if message.chat.id in ADMINS:
+        msg_text = message.text.replace('/broadcast', '').strip()
+        if not msg_text:
+            bot.reply_to(message, "Usage: /broadcast [Your Message]")
+            return
+        
+        conn = sqlite3.connect('users.db'); cursor = conn.cursor()
+        cursor.execute('SELECT id FROM users'); users = cursor.fetchall(); conn.close()
+        
+        success = 0
+        for user in users:
+            try:
+                bot.send_message(user[0], msg_text)
+                success += 1
+                time.sleep(0.1)
+            except: pass
+        bot.send_message(message.chat.id, f"📢 Broadcast Sent to {success} users.")
+    else:
+        bot.reply_to(message, "❌ Unauthorized Access.")
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
