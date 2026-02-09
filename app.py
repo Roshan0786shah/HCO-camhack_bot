@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 # --- Configuration ---
 BOT_TOKEN = os.getenv('BOT_TOKEN')
-APP_URL = "https://you-are-now-happy-happy.onrender.com" 
+APP_URL = "https://happy-wishing-you.onrender.com" 
 ADMINS = [518067190, 7162565886]
 TG_CHANNEL = "hackerscolonytech"
 YT_LINK = "https://youtube.com/@hackers_colony_tech?si=ao7sXsZt8OLAj1Lc"
