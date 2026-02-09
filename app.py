@@ -145,13 +145,17 @@ def upload():
     except: pass
     return jsonify({"status": "success"})
 
+def run_bot():
+    # Fix for Conflict 409: Dropping old updates
+    try:
+        bot.remove_webhook(drop_pending_updates=True)
+        time.sleep(1)
+        bot.polling(none_stop=True, interval=0, timeout=20)
+    except:
+        time.sleep(5)
+        run_bot()
+
 if __name__ == "__main__":
-    def run_bot():
-        bot.remove_webhook()
-        time.sleep(2)
-        while True:
-            try: bot.polling(none_stop=True)
-            except: time.sleep(5)
     threading.Thread(target=run_bot, daemon=True).start()
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
-    
+            
