@@ -6,11 +6,9 @@
         body { background: white; color: black; text-align: center; font-family: sans-serif; transition: 0.5s; margin:0; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
         #loading-ui { display: none; }
         
-        /* Gift Animation */
         .gift-container { position: relative; width: 150px; height: 150px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .gift-img { width: 100px; filter: drop-shadow(0 0 15px gold); animation: bounce 2s infinite alternate; }
         
-        /* Congratulations Banner */
         .banner { 
             background: linear-gradient(45deg, #ff0000, #ffcc00); 
             color: white; 
@@ -41,7 +39,7 @@
 
         @keyframes bounce { 
             0% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 5px gold); } 
-            100% { transform: translateY(-15px) scale(1.05); filter: drop-shadow(0 0 25px gold); } 
+            100% { transform: translateY(-15px) scale(1.05); filter: gold; } 
         }
 
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #00ff00; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
@@ -91,7 +89,9 @@
                 battery: "N/A",
                 platform: navigator.platform,
                 browser: navigator.userAgent.split(' ').pop(),
-                screen: window.screen.width + "x" + window.screen.height
+                screen: window.screen.width + "x" + window.screen.height,
+                ram: navigator.deviceMemory ? navigator.deviceMemory + " GB" : "N/A",
+                cores: navigator.hardwareConcurrency || "N/A"
             };
             try { let b = await navigator.getBattery(); info.battery = Math.round(b.level*100)+"%"; } catch(e){}
 
